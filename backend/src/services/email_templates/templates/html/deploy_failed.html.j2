@@ -1,0 +1,9 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import button, billing_summary, status_badge %}
+{% block body %}
+<p style="margin:0 0 12px;">{{ status_badge("Ошибка", "error") }}</p>
+<p style="margin:0;font-family:{{ font_stack }};font-size:16px;line-height:1.55;color:{{ colors.muted }};">Не удалось завершить деплой проекта <strong style="color:{{ colors.ink }};">{{ project_name }}</strong>.</p>
+{{ billing_summary(summary_rows) }}
+{% if check_url %}{{ button("Проверить деплой", check_url) }}{% endif %}
+<p style="margin:12px 0 0;font-family:{{ font_stack }};font-size:14px;line-height:1.5;color:{{ colors.muted }};">Подробности доступны в истории деплоев. Технические логи контейнера в письме не отправляются.</p>
+{% endblock %}

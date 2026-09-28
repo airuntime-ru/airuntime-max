@@ -1,0 +1,76 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}
+{{ title }} | {{ site_title|default:_("Django site admin") }}
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="icon" href="{% static 'core/favicon.ico' %}" sizes="48x48" type="image/x-icon">
+<link rel="shortcut icon" href="{% static 'core/favicon.ico' %}">
+<script>
+  (function () {
+    try {
+      if (!localStorage.getItem("theme")) {
+        localStorage.setItem("theme", "light");
+      }
+    } catch (error) {
+      // Ignore localStorage access issues.
+    }
+  })();
+</script>
+<style>
+  /* Keep default admin layout but remove "recent actions" module */
+  #recent-actions,
+  div#recent-actions,
+  .module#recent-actions,
+  .module#recent-actions *,
+  #recent-actions * {
+    display: none !important;
+  }
+
+  /* Also remove any remaining recent actions wrapper (Django versions may vary) */
+  #recent-actions + *,
+  .recent-actions,
+  .module.recent-actions {
+    display: none !important;
+  }
+
+  .airuntime-admin-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 0;
+  }
+
+  /* Scoped to #branding (always a dark bar, regardless of the admin's light/dark
+     theme) so these pills need their own fixed light-on-dark colors rather than
+     the body-content vars (--body-bg/--link-fg), which would blend into invisibility. */
+  #branding .airuntime-admin-links a {
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  #branding .airuntime-admin-links a:hover {
+    background: rgba(255, 255, 255, 0.24);
+  }
+</style>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">AIRuntime Admin</a></div>
+<nav class="airuntime-admin-links" aria-label="AIRuntime admin tools">
+  <a href="{% url 'admin:index' %}">Модели</a>
+  <a href="{% url 'admin_docker_containers' %}">Docker контейнеры</a>
+  <a href="{% url 'admin_docker_images' %}">Docker образы</a>
+  <a href="{% url 'admin_docker_resources' %}">Ресурсы</a>
+  <a href="{% url 'admin_support_open' %}">Чат поддержки</a>
+</nav>
+{% endblock %}

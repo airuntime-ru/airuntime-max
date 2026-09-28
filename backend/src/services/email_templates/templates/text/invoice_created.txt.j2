@@ -1,0 +1,13 @@
+AIRuntime
+
+Счёт создан
+
+Номер счёта: {{ invoice_number }}
+Сумма: {{ amount_rub }} ₽
+К зачислению: {{ credits_label }} кредитов
+{% if created_label %}Создан: {{ created_label }}
+{% endif %}
+Оплатите счёт по инструкции в личном кабинете.
+{% if billing_url %}Открыть оплату: {{ billing_url }}{% endif %}
+
+{{ frontend_url }}

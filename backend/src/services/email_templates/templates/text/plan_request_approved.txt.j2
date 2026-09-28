@@ -1,0 +1,9 @@
+AIRuntime
+
+Тариф подключён
+
+Тариф: {{ plan_name }}
+Начислено: {{ budget_rub }} ₽ ({{ credits_label }} кредитов)
+{% if period_end_label %}Период до: {{ period_end_label }}
+{% endif %}
+{{ billing_url or frontend_url }}

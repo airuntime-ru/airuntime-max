@@ -1,0 +1,190 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Оркестрация — {{ project.name }} | {{ site_title|default:_("Django site admin") }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo;
+  <a href="{% url 'admin:domain_domainproject_changelist' %}">Проекты</a>
+  &rsaquo;
+  <a href="{% url 'admin:domain_domainproject_change' project.id %}">{{ project.name }}</a>
+  &rsaquo; Оркестрация
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .an-toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .an-range { display:flex; gap:8px; flex-wrap:wrap; }
+  .an-range a { padding:7px 14px; border:1px solid var(--border-color); border-radius:999px; font-size:13px; text-decoration:none; color:var(--body-fg); background:var(--body-bg); }
+  .an-range a.is-active { background:var(--primary); border-color:var(--primary); color:var(--primary-fg); }
+  .an-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:22px; }
+  .an-tile { border:1px solid var(--border-color); border-radius:10px; padding:14px 16px; background:var(--body-bg); }
+  .an-tile__label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--body-quiet-color); }
+  .an-tile__value { font-size:26px; font-weight:600; margin-top:6px; }
+  .an-tile__hint { font-size:12px; margin-top:4px; color:var(--body-quiet-color); }
+  .an-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:18px; margin-bottom:22px; }
+  .an-card { border:1px solid var(--border-color); border-radius:10px; padding:16px; background:var(--body-bg); }
+  .an-card h2 { font-size:14px; margin:0 0 12px; }
+  .an-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .an-table th, .an-table td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--hairline-color); }
+  .an-table th { font-weight:600; color:var(--body-quiet-color); }
+  .an-table td.num, .an-table th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .an-status { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .an-status--completed { background:#e8f5e9; color:#2e7d32; }
+  .an-status--failed { background:#ffebee; color:#c62828; }
+  .an-status--cancelled { background:#f5f5f5; color:#616161; }
+  .an-status--running { background:#e3f2fd; color:#1565c0; }
+  .an-status--waiting { background:#fff3e0; color:#ef6c00; }
+  .an-status--default { background:#f3f4f6; color:#374151; }
+  .an-link { color:var(--link-fg); text-decoration:none; }
+  .an-link:hover { text-decoration:underline; }
+  .an-metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+  .an-metric { font-size:13px; }
+  .an-metric__label { color:var(--body-quiet-color); }
+  .an-metric__value { font-weight:600; margin-top:2px; }
+</style>
+
+<div class="an-toolbar">
+  <div>
+    <strong>{{ project.name }}</strong>
+    <span style="color:var(--body-quiet-color); margin-left:8px;">{{ project.user.email }}</span>
+    {% if product_links %}
+      <span style="margin-left:12px;">
+        {% for label, href, text in product_links %}
+          <a class="button" href="{{ href }}" target="_blank" rel="noopener noreferrer">{{ label }} · {{ text }}</a>
+        {% endfor %}
+      </span>
+    {% endif %}
+  </div>
+  <div class="an-range">
+    <a href="?days=7&hours={{ hours }}" class="{% if days == 7 %}is-active{% endif %}">7 дней</a>
+    <a href="?days=30&hours={{ hours }}" class="{% if days == 30 %}is-active{% endif %}">30 дней</a>
+    <a href="?days=90&hours={{ hours }}" class="{% if days == 90 %}is-active{% endif %}">90 дней</a>
+  </div>
+  <div class="an-range">
+    <span style="font-size:12px; color:var(--body-quiet-color);">Метрики:</span>
+    <a href="?days={{ days }}&hours=6" class="{% if hours == 6 %}is-active{% endif %}">6 ч</a>
+    <a href="?days={{ days }}&hours=24" class="{% if hours == 24 %}is-active{% endif %}">24 ч</a>
+    <a href="?days={{ days }}&hours=72" class="{% if hours == 72 %}is-active{% endif %}">72 ч</a>
+  </div>
+</div>
+
+<div class="an-tiles" id="orch-tiles"></div>
+
+<div class="an-grid">
+  <div class="an-card">
+    <h2>Метрики за {{ hours }} ч</h2>
+    <div class="an-metrics-grid" id="orch-metrics"></div>
+  </div>
+  <div class="an-card">
+    <h2>Запуски по статусам</h2>
+    <table class="an-table" id="orch-by-status"></table>
+  </div>
+</div>
+
+<div class="an-card">
+  <h2>Последние запуски</h2>
+  <table class="an-table" id="orch-runs"></table>
+</div>
+
+{{ summary_json|json_script:"data-summary" }}
+{{ metrics_json|json_script:"data-metrics" }}
+
+<script>
+(function () {
+  var read = function (id) {
+    var node = document.getElementById(id);
+    if (!node) return null;
+    var raw = JSON.parse(node.textContent);
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
+  };
+
+  var summary = read("data-summary") || {};
+  var metrics = read("data-metrics") || {};
+  var runDetailBase = "{% url 'admin_orchestration_run_detail' '00000000-0000-0000-0000-000000000000' %}".replace(
+    "00000000-0000-0000-0000-000000000000", ""
+  );
+
+  var fmt = function (value) {
+    if (value === null || value === undefined) return "—";
+    return typeof value === "number" ? value.toLocaleString("ru-RU") : value;
+  };
+
+  var pct = function (value) {
+    if (value === null || value === undefined) return "—";
+    return (value * 100).toFixed(1) + "%";
+  };
+
+  var statusClass = function (status) {
+    if (status === "completed") return "an-status--completed";
+    if (status === "failed") return "an-status--failed";
+    if (status === "cancelled") return "an-status--cancelled";
+    if (status === "waiting_for_user") return "an-status--waiting";
+    if (["running", "planning", "analyzing", "validating", "replanning", "building", "deploying"].indexOf(status) >= 0) {
+      return "an-status--running";
+    }
+    return "an-status--default";
+  };
+
+  var tiles = [
+    { label: "Запусков", value: summary.runs_total },
+    { label: "Успешность", value: pct(summary.success_rate) },
+    { label: "Кредитов", value: fmt(summary.credits_total) },
+    { label: "Зависших", value: summary.runs_stuck },
+    { label: "Завершено", value: summary.runs_completed },
+    { label: "Ошибок", value: summary.runs_failed },
+    { label: "Отменено", value: summary.runs_cancelled },
+    { label: "Ср. кредитов (успех)", value: fmt(summary.credits_avg_successful) },
+  ];
+
+  document.getElementById("orch-tiles").innerHTML = tiles.map(function (tile) {
+    return '<div class="an-tile"><div class="an-tile__label">' + tile.label +
+      '</div><div class="an-tile__value">' + tile.value + "</div></div>";
+  }).join("");
+
+  var metricRows = [
+    ["Успешность запусков", pct(metrics.run_success_rate)],
+    ["Принятие задач", pct(metrics.task_acceptance_rate)],
+    ["Успех с 1-й попытки", pct(metrics.first_attempt_success_rate)],
+    ["Успех ремонта", pct(metrics.repair_success_rate)],
+    ["Доля перепланирований", pct(metrics.replan_rate)],
+    ["Skill match", pct(metrics.skill_match_rate)],
+    ["Циклы без прогресса", fmt(metrics.repeated_failure_loops)],
+    ["Ср. кредитов / успех", fmt(metrics.average_credits_per_successful_run)],
+    ["Ср. длительность, с", fmt(metrics.average_run_seconds)],
+  ];
+
+  document.getElementById("orch-metrics").innerHTML = metricRows.map(function (row) {
+    return '<div class="an-metric"><div class="an-metric__label">' + row[0] +
+      '</div><div class="an-metric__value">' + row[1] + "</div></div>";
+  }).join("");
+
+  var byStatus = summary.by_status || {};
+  document.getElementById("orch-by-status").innerHTML =
+    "<tr><th>Статус</th><th class='num'>Кол-во</th></tr>" +
+    Object.keys(byStatus).sort().map(function (status) {
+      return "<tr><td><span class='an-status " + statusClass(status) + "'>" + status +
+        "</span></td><td class='num'>" + fmt(byStatus[status]) + "</td></tr>";
+    }).join("");
+
+  var runs = summary.recent_runs || [];
+  document.getElementById("orch-runs").innerHTML =
+    "<tr><th>ID</th><th>Статус</th><th>Цель</th><th class='num'>Кредиты</th>" +
+    "<th class='num'>План v</th><th>Модель</th><th>Создан</th><th></th></tr>" +
+    runs.map(function (run) {
+      var goal = (run.goal || run.error_code || "—").slice(0, 80);
+      var model = [run.provider, run.model].filter(Boolean).join(" / ") || "—";
+      var created = run.created_at ? new Date(run.created_at).toLocaleString("ru-RU") : "—";
+      var href = runDetailBase + run.id;
+      return "<tr><td><code style='font-size:11px'>" + String(run.id).slice(0, 8) + "…</code></td>" +
+        "<td><span class='an-status " + statusClass(run.status) + "'>" + run.status + "</span></td>" +
+        "<td>" + goal + "</td><td class='num'>" + fmt(run.credits_used) + "</td>" +
+        "<td class='num'>" + fmt(run.plan_version) + "</td><td>" + model + "</td><td>" + created +
+        "</td><td><a class='an-link' href='" + href + "'>Детали</a></td></tr>";
+    }).join("");
+})();
+</script>
+{% endblock %}

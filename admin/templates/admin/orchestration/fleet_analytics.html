@@ -1,0 +1,214 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}Аналитика оркестратора | {{ site_title|default:_("Django site admin") }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo; Аналитика оркестратора
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .an-toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .an-range { display:flex; gap:8px; flex-wrap:wrap; }
+  .an-range a { padding:7px 14px; border:1px solid var(--border-color); border-radius:999px; font-size:13px; text-decoration:none; color:var(--body-fg); background:var(--body-bg); }
+  .an-range a.is-active { background:var(--primary); border-color:var(--primary); color:var(--primary-fg); }
+  .an-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:22px; }
+  .an-tile { border:1px solid var(--border-color); border-radius:10px; padding:14px 16px; background:var(--body-bg); }
+  .an-tile__label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--body-quiet-color); }
+  .an-tile__value { font-size:26px; font-weight:600; margin-top:6px; }
+  .an-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:18px; margin-bottom:22px; }
+  .an-card { border:1px solid var(--border-color); border-radius:10px; padding:16px; background:var(--body-bg); }
+  .an-card h2 { font-size:14px; margin:0 0 12px; }
+  .an-card canvas { max-height:260px; }
+  .an-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .an-table th, .an-table td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--hairline-color); vertical-align:top; }
+  .an-table th { font-weight:600; color:var(--body-quiet-color); }
+  .an-live-badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#2e7d32; color:#fff; font-size:11px; font-weight:600; }
+  .an-muted { color:var(--body-quiet-color); font-size:12px; }
+  .an-status { font-weight:600; }
+</style>
+
+<div class="an-toolbar">
+  <div class="an-range">
+    <a href="?days=7&hours={{ hours }}" class="{% if days == 7 %}is-active{% endif %}">7 дней</a>
+    <a href="?days=30&hours={{ hours }}" class="{% if days == 30 %}is-active{% endif %}">30 дней</a>
+    <a href="?days=90&hours={{ hours }}" class="{% if days == 90 %}is-active{% endif %}">90 дней</a>
+  </div>
+  <div class="an-range">
+    <a href="?days={{ days }}&hours=24" class="{% if hours == 24 %}is-active{% endif %}">health 24ч</a>
+    <a href="?days={{ days }}&hours=168" class="{% if hours == 168 %}is-active{% endif %}">health 7д</a>
+  </div>
+  <div>
+    <a href="{{ runs_changelist_url }}">Все запуски</a>
+  </div>
+</div>
+
+<div class="an-tiles" id="an-tiles"></div>
+
+<div class="an-card" style="margin-bottom:22px;">
+  <h2><span class="an-live-badge">LIVE</span> Сейчас выполняется <span id="live-count"></span></h2>
+  <div class="an-muted" id="live-updated"></div>
+  <div style="overflow:auto; margin-top:12px;">
+    <table class="an-table" id="live-table">
+      <thead>
+        <tr>
+          <th>Проект</th>
+          <th>Статус</th>
+          <th>Задача</th>
+          <th>Модель</th>
+          <th>Кредиты</th>
+          <th>Обновлено</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="an-grid">
+  <div class="an-card">
+    <h2>Запуски по дням</h2>
+    <canvas id="chart-runs"></canvas>
+  </div>
+  <div class="an-card">
+    <h2>Статусы запусков</h2>
+    <canvas id="chart-status"></canvas>
+  </div>
+</div>
+
+<div class="an-grid">
+  <div class="an-card">
+    <h2>Задачи по ролям</h2>
+    <canvas id="chart-roles"></canvas>
+  </div>
+  <div class="an-card">
+    <h2>Health-метрики ({{ hours }} ч)</h2>
+    <div id="health-metrics"></div>
+  </div>
+</div>
+
+{{ summary_json|json_script:"orch-summary" }}
+{{ daily_runs_json|json_script:"orch-daily" }}
+{{ status_json|json_script:"orch-status" }}
+{{ tasks_by_role_json|json_script:"orch-roles" }}
+{{ health_json|json_script:"orch-health" }}
+{{ active_runs_json|json_script:"orch-active" }}
+
+<script src="{% static 'core/vendor/chart.umd.min.js' %}"></script>
+<script>
+(function () {
+  function read(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const raw = JSON.parse(el.textContent);
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
+  }
+
+  const summary = read("orch-summary") || {};
+  const tiles = [
+    ["Запусков", summary.runs_total],
+    ["Сейчас активно", summary.runs_active],
+    ["Успешных", summary.runs_completed],
+    ["Success rate", summary.success_rate != null ? (summary.success_rate * 100).toFixed(1) + "%" : "—"],
+    ["Зависших", summary.runs_stuck],
+    ["Кредитов", summary.credits_total],
+    ["Среднее время", summary.average_run_seconds != null ? Math.round(summary.average_run_seconds) + " c" : "—"],
+  ];
+  document.getElementById("an-tiles").innerHTML = tiles.map(([label, value]) =>
+    `<div class="an-tile"><div class="an-tile__label">${label}</div><div class="an-tile__value">${value ?? "—"}</div></div>`
+  ).join("");
+
+  const daily = read("orch-daily") || [];
+  new Chart(document.getElementById("chart-runs"), {
+    type: "line",
+    data: {
+      labels: daily.map(r => r.day),
+      datasets: [
+        { label: "Всего", data: daily.map(r => r.total), borderColor: "#1565c0", tension: 0.2 },
+        { label: "Completed", data: daily.map(r => r.completed), borderColor: "#2e7d32", tension: 0.2 },
+        { label: "Failed", data: daily.map(r => r.failed), borderColor: "#c62828", tension: 0.2 },
+      ],
+    },
+    options: { responsive: true, maintainAspectRatio: false },
+  });
+
+  const statuses = read("orch-status") || [];
+  new Chart(document.getElementById("chart-status"), {
+    type: "doughnut",
+    data: {
+      labels: statuses.map(r => r.status),
+      datasets: [{ data: statuses.map(r => r.count), backgroundColor: ["#2e7d32", "#1565c0", "#c62828", "#ef6c00", "#6a1b9a", "#546e7a"] }],
+    },
+    options: { responsive: true, maintainAspectRatio: false },
+  });
+
+  const roles = read("orch-roles") || [];
+  new Chart(document.getElementById("chart-roles"), {
+    type: "bar",
+    data: {
+      labels: roles.map(r => r.role),
+      datasets: [{ label: "Задач", data: roles.map(r => r.count), backgroundColor: "#1565c0" }],
+    },
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: "y" },
+  });
+
+  const health = read("orch-health") || {};
+  const healthRows = [
+    ["Run success", health.run_success_rate],
+    ["Task acceptance", health.task_acceptance_rate],
+    ["First attempt OK", health.first_attempt_success_rate],
+    ["Replan rate", health.replan_rate],
+  ];
+  document.getElementById("health-metrics").innerHTML =
+    `<table class="an-table"><tbody>${healthRows.map(([k,v]) =>
+      `<tr><td>${k}</td><td>${v != null ? (v * 100).toFixed(1) + "%" : "—"}</td></tr>`
+    ).join("")}</tbody></table>`;
+
+  function fmtTime(value) {
+    if (!value) return "—";
+    try { return new Date(value).toLocaleString("ru-RU"); } catch (_) { return value; }
+  }
+
+  function renderLive(rows) {
+    document.getElementById("live-count").textContent = rows.length;
+    const tbody = document.querySelector("#live-table tbody");
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="an-muted">Сейчас нет активных запусков</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(row => `
+      <tr>
+        <td>${row.project_name || "—"}</td>
+        <td class="an-status">${row.status || "—"}</td>
+        <td>${row.task_title ? `${row.task_local_id || ""} · ${row.task_title}` : "—"}</td>
+        <td>${row.provider || "—"}<br><span class="an-muted">${row.model || ""}</span></td>
+        <td>${row.credits_used || 0}${row.credit_budget ? " / " + row.credit_budget : ""}</td>
+        <td>${fmtTime(row.updated_at)}</td>
+        <td><a href="/admin/orchestration/run/${row.run_id}/">Открыть</a></td>
+      </tr>
+    `).join("");
+  }
+
+  renderLive(read("orch-active") || []);
+
+  async function pollLive() {
+    try {
+      const resp = await fetch("{% url 'admin_orchestration_analytics_live' %}");
+      if (!resp.ok) return;
+      const body = await resp.json();
+      renderLive(body.active_runs || []);
+      document.getElementById("live-updated").textContent =
+        "Обновлено: " + fmtTime(body.generated_at);
+    } catch (_) {}
+  }
+
+  pollLive();
+  setInterval(pollLive, 5000);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+AIRuntime
+
+Скоро конец тарифного периода
+
+Дата окончания: {{ period_end_label }}
+{% if plan_name %}Тариф: {{ plan_name }}
+{% endif %}{% if credits_balance is not none %}Текущий остаток: {{ balance_label }}
+{% endif %}
+Баланс обновится автоматически. Ничего делать не нужно, если вы остаётесь на текущем тарифе.
+{% if billing_url %}Управление тарифом: {{ billing_url }}{% endif %}
+
+{{ frontend_url }}

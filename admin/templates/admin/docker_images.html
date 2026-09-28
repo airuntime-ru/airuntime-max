@@ -1,0 +1,87 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Главная</a> &rsaquo; Docker образы
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .docker-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+  }
+
+  .docker-toolbar a {
+    border: 1px solid var(--hairline-color);
+    border-radius: 999px;
+    padding: 8px 12px;
+    text-decoration: none;
+  }
+
+  .docker-toolbar a.active {
+    background: var(--primary);
+    color: var(--primary-fg);
+  }
+
+  .docker-actions button {
+    border: 1px solid #f3b5bd;
+    border-radius: 6px;
+    padding: 6px 9px;
+    background: var(--body-bg);
+    color: #b42335;
+    cursor: pointer;
+  }
+</style>
+
+<div class="docker-toolbar">
+  <a href="{% url 'admin_docker_containers' %}">Контейнеры</a>
+  <a class="active" href="{% url 'admin_docker_images' %}">Образы</a>
+  <a href="{% url 'admin_docker_resources' %}">Ресурсы</a>
+</div>
+
+{% if docker_error %}
+  <p class="errornote">Docker недоступен: {{ docker_error.message }}</p>
+{% endif %}
+
+<div class="module">
+  <table>
+    <thead>
+      <tr>
+        <th>Образ</th>
+        <th>ID</th>
+        <th>Размер</th>
+        <th>Создан</th>
+        <th>Действие</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for image in images %}
+        <tr>
+          <td>
+            {% for tag in image.tags %}
+              <div><code>{{ tag }}</code></div>
+            {% endfor %}
+          </td>
+          <td>{{ image.short_id }}</td>
+          <td>{{ image.size }}</td>
+          <td>{{ image.created }}</td>
+          <td>
+            <form class="docker-actions" method="post" onsubmit="return confirm('Удалить Docker образ?');">
+              {% csrf_token %}
+              <input type="hidden" name="image_id" value="{{ image.id }}">
+              <input type="hidden" name="action" value="remove">
+              <button type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Образов нет.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

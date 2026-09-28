@@ -1,0 +1,10 @@
+AIRuntime
+
+Счёт оплачен
+
+Оплачено: {{ amount_rub }} ₽
+Зачислено на баланс: {{ granted_label }}
+{% if new_balance_label %}Новый баланс: {{ new_balance_label }}
+{% endif %}{% if billing_url %}Кабинет: {{ billing_url }}
+{% endif %}
+{{ frontend_url }}

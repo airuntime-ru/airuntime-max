@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 220" fill="none" role="img" aria-label="AIRuntime">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      #airuntime-full-shine { animation: airuntime-full-shine 7s ease-in-out infinite; }
+    }
+    @keyframes airuntime-full-shine {
+      0% { transform: translateX(-120px); opacity: .25; }
+      45% { opacity: .75; }
+      74% { transform: translateX(320px); opacity: .18; }
+      100% { transform: translateX(320px); opacity: 0; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="full-left" x1="40" y1="178" x2="118" y2="22" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C7B8FF" stop-opacity=".9"/>
+      <stop offset=".44" stop-color="#8BDFFF" stop-opacity=".96"/>
+      <stop offset="1" stop-color="#1D8CFF" stop-opacity=".88"/>
+    </linearGradient>
+    <linearGradient id="full-right" x1="102" y1="34" x2="184" y2="184" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEFBFF" stop-opacity=".96"/>
+      <stop offset=".43" stop-color="#50DBE5" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#2388FF" stop-opacity=".9"/>
+    </linearGradient>
+    <linearGradient id="full-cross" x1="62" y1="144" x2="164" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CFC6FF" stop-opacity=".8"/>
+      <stop offset=".55" stop-color="#EAF9FF" stop-opacity=".88"/>
+      <stop offset="1" stop-color="#14B8D7" stop-opacity=".78"/>
+    </linearGradient>
+    <linearGradient id="full-shine-gradient" x1="0" y1="0" x2="120" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(18 14)">
+    <path d="M36 168c23-67 39-109 55-130 13-16 28-19 41-13 18 8 34 35 47 80 8 26 12 47 13 57 2 15-7 25-19 25-8 0-14-4-19-14-21-40-40-62-58-66-21-5-40 13-57 53-2 5-4 8-3 8Z" fill="url(#full-left)" opacity=".88"/>
+    <path d="M89 39c13-16 28-20 42-14 18 8 35 35 49 80 8 26 12 47 13 57 1 14-6 23-17 25-9 1-16-4-21-14-8-16-16-29-24-39-15-70-30-101-42-95Z" fill="url(#full-right)" opacity=".8"/>
+    <path d="M30 169c24-34 47-52 70-55 25-3 49 14 72 50-5 15-16 21-29 12-17-13-32-20-45-21-15-1-31 6-48 22-12 11-23 9-20-8Z" fill="url(#full-cross)" opacity=".9"/>
+    <path d="M39 165c23-66 39-106 55-126 12-15 26-18 39-12 17 8 32 34 45 77 8 25 12 46 13 56" fill="none" stroke="#1293FF" stroke-opacity=".45" stroke-width="3" stroke-linecap="round"/>
+    <path id="airuntime-full-shine" d="M20 12h70v180H20z" fill="url(#full-shine-gradient)" opacity=".72"/>
+  </g>
+  <text x="230" y="135" fill="#081426" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="64" font-weight="650" letter-spacing="17">AIRUNTIME</text>
+</svg>

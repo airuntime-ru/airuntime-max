@@ -1,0 +1,211 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}Аналитика | {{ site_title|default:_("Django site admin") }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo; Аналитика
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .an-toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .an-nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+  .an-nav a { padding:8px 14px; border-radius:999px; border:1px solid var(--border-color); text-decoration:none; color:var(--body-fg); font-size:13px; font-weight:600; }
+  .an-nav a.is-active { background:var(--primary); border-color:var(--primary); color:var(--primary-fg); }
+  .an-range { display:flex; gap:8px; flex-wrap:wrap; }
+  .an-range a { padding:7px 14px; border:1px solid var(--border-color); border-radius:999px; font-size:13px; text-decoration:none; color:var(--body-fg); background:var(--body-bg); }
+  .an-range a.is-active { background:var(--primary); border-color:var(--primary); color:var(--primary-fg); }
+  .an-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:22px; }
+  .an-tile { border:1px solid var(--border-color); border-radius:10px; padding:14px 16px; background:var(--body-bg); }
+  .an-tile__label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--body-quiet-color); }
+  .an-tile__value { font-size:26px; font-weight:600; margin-top:6px; }
+  .an-tile__delta { font-size:12px; margin-top:4px; }
+  .an-up { color:#2e7d32; } .an-down { color:#c62828; } .an-flat { color:var(--body-quiet-color); }
+  .an-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:18px; margin-bottom:22px; }
+  .an-card { border:1px solid var(--border-color); border-radius:10px; padding:16px; background:var(--body-bg); }
+  .an-card h2 { font-size:14px; margin:0 0 12px; }
+  .an-card canvas { max-height:260px; }
+  .an-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .an-table th, .an-table td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--hairline-color); }
+  .an-table th { font-weight:600; color:var(--body-quiet-color); }
+  .an-table td.num, .an-table th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .an-funnel { display:grid; gap:10px; }
+  .an-funnel__row { display:grid; grid-template-columns:150px 1fr 92px; align-items:center; gap:10px; font-size:13px; }
+  .an-funnel__bar { height:22px; border-radius:5px; background:var(--primary); min-width:2px; }
+  .an-actions a { font-size:12px; margin-left:10px; }
+</style>
+
+<nav class="an-nav">
+  <a href="{{ product_analytics_url }}">Продукт</a>
+  <a href="{% url 'admin_analytics_dashboard' %}?days={{ days }}" class="is-active">Расходы и маржа</a>
+</nav>
+
+<div class="an-toolbar">
+  <div class="an-range">
+    <a href="?days=7" class="{% if days == 7 %}is-active{% endif %}">7 дней</a>
+    <a href="?days=30" class="{% if days == 30 %}is-active{% endif %}">30 дней</a>
+    <a href="?days=90" class="{% if days == 90 %}is-active{% endif %}">90 дней</a>
+  </div>
+  <div class="an-actions">
+    <a href="{% url 'admin_analytics_export' 'daily-spend' %}?days={{ days }}">CSV: расходы по дням</a>
+    <a href="{% url 'admin_analytics_export' 'by-model' %}?days={{ days }}">CSV: по моделям</a>
+    <a href="{% url 'admin_analytics_export' 'top-users' %}?days={{ days }}">CSV: топ юзеров</a>
+    <a href="{% url 'admin_analytics_export' 'funnel' %}?days={{ days }}">CSV: воронка</a>
+  </div>
+</div>
+
+<div class="an-tiles" id="an-tiles"></div>
+
+<div class="an-grid">
+  <div class="an-card">
+    <h2>Расход провайдера и списания, ₽ по дням</h2>
+    <canvas id="chart-spend"></canvas>
+  </div>
+  <div class="an-card">
+    <h2>Ключ платформы против BYOK</h2>
+    <canvas id="chart-byok"></canvas>
+  </div>
+</div>
+
+<div class="an-grid">
+  <div class="an-card">
+    <h2>Воронка за период</h2>
+    <div class="an-funnel" id="an-funnel"></div>
+  </div>
+  <div class="an-card">
+    <h2>Заявки на тарифы и burn free</h2>
+    <table class="an-table" id="an-plans"></table>
+  </div>
+</div>
+
+<div class="an-card" style="margin-bottom:18px;">
+  <h2>По моделям</h2>
+  <table class="an-table" id="an-models"></table>
+</div>
+
+<div class="an-card">
+  <h2>Топ пользователей по расходу</h2>
+  <table class="an-table" id="an-users"></table>
+</div>
+
+{{ kpis_json|json_script:"data-kpis" }}
+{{ daily_spend_json|json_script:"data-spend" }}
+{{ by_model_json|json_script:"data-models" }}
+{{ platform_vs_byok_json|json_script:"data-byok" }}
+{{ top_users_json|json_script:"data-users" }}
+{{ funnel_json|json_script:"data-funnel" }}
+{{ plan_requests_json|json_script:"data-plans" }}
+{{ free_burn_json|json_script:"data-burn" }}
+{{ usage_totals_json|json_script:"data-usage" }}
+
+<script src="{% static 'core/vendor/chart.umd.min.js' %}"></script>
+<script>
+(function () {
+  // json_script writes the value as a JSON string; parse twice to get the object.
+  var read = function (id) {
+    var node = document.getElementById(id);
+    if (!node) return null;
+    var raw = JSON.parse(node.textContent);
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
+  };
+
+  var kpis = read("data-kpis") || { tiles: [] };
+  var spend = read("data-spend") || [];
+  var models = read("data-models") || [];
+  var byok = read("data-byok") || [];
+  var users = read("data-users") || [];
+  var funnel = read("data-funnel") || [];
+  var plans = read("data-plans") || {};
+  var burn = read("data-burn") || {};
+  var usage = read("data-usage") || {};
+
+  var fmt = function (value) {
+    return typeof value === "number" ? value.toLocaleString("ru-RU") : value;
+  };
+
+  document.getElementById("an-tiles").innerHTML = kpis.tiles.map(function (tile) {
+    var delta = "";
+    if (tile.delta_pct !== null && tile.delta_pct !== undefined) {
+      var cls = tile.delta_pct > 0 ? "an-up" : tile.delta_pct < 0 ? "an-down" : "an-flat";
+      var sign = tile.delta_pct > 0 ? "+" : "";
+      delta = '<div class="an-tile__delta ' + cls + '">' + sign + tile.delta_pct + "% к прошлому периоду</div>";
+    }
+    return '<div class="an-tile"><div class="an-tile__label">' + tile.label +
+      '</div><div class="an-tile__value">' + fmt(tile.value) + " " + (tile.unit || "") +
+      "</div>" + delta + "</div>";
+  }).join("");
+
+  var maxCount = Math.max.apply(null, funnel.map(function (s) { return s.count; }).concat([1]));
+  document.getElementById("an-funnel").innerHTML = funnel.map(function (step) {
+    var width = Math.max(2, Math.round(100 * step.count / maxCount));
+    return '<div class="an-funnel__row"><span>' + step.step + '</span>' +
+      '<span><span class="an-funnel__bar" style="width:' + width + '%"></span></span>' +
+      "<span>" + fmt(step.count) + " · " + step.pct + "%</span></div>";
+  }).join("");
+
+  document.getElementById("an-plans").innerHTML =
+    "<tr><th>Показатель</th><th class='num'>Значение</th></tr>" +
+    [["Заявок ждут ответа", plans.pending],
+     ["Одобрено за период", plans.approved],
+     ["Отклонено за период", plans.rejected],
+     ["Отменено пользователем", plans.cancelled],
+     ["Free-пользователей", burn.free_users],
+     ["Burn free за период, ₽", burn.total_rub],
+     ["Burn free в день, ₽", burn.per_day_rub],
+     ["Входных токенов", usage.input_tokens],
+     ["Выходных токенов", usage.output_tokens]
+    ].map(function (row) {
+      return "<tr><td>" + row[0] + "</td><td class='num'>" + fmt(row[1] || 0) + "</td></tr>";
+    }).join("");
+
+  document.getElementById("an-models").innerHTML =
+    "<tr><th>Провайдер</th><th>Модель</th><th class='num'>Запросов</th>" +
+    "<th class='num'>Расход, $</th><th class='num'>Списано, ₽</th>" +
+    "<th class='num'>Вход</th><th class='num'>Выход</th></tr>" +
+    models.map(function (row) {
+      return "<tr><td>" + row.provider + "</td><td>" + row.model +
+        "</td><td class='num'>" + fmt(row.requests) +
+        "</td><td class='num'>" + fmt(row.provider_cost_usd) +
+        "</td><td class='num'>" + fmt(row.charged_rub) +
+        "</td><td class='num'>" + fmt(row.input_tokens) +
+        "</td><td class='num'>" + fmt(row.output_tokens) + "</td></tr>";
+    }).join("");
+
+  document.getElementById("an-users").innerHTML =
+    "<tr><th>Пользователь</th><th class='num'>Запросов</th>" +
+    "<th class='num'>Расход, $</th><th class='num'>Списано, ₽</th></tr>" +
+    users.map(function (row) {
+      return "<tr><td>" + row.email + "</td><td class='num'>" + fmt(row.requests) +
+        "</td><td class='num'>" + fmt(row.provider_cost_usd) +
+        "</td><td class='num'>" + fmt(row.charged_rub) + "</td></tr>";
+    }).join("");
+
+  if (window.Chart) {
+    new Chart(document.getElementById("chart-spend"), {
+      type: "line",
+      data: {
+        labels: spend.map(function (row) { return row.day; }),
+        datasets: [
+          { label: "Расход провайдера, ₽", data: spend.map(function (r) { return r.provider_cost_rub; }), borderColor: "#c62828", tension: 0.3 },
+          { label: "Списано с юзеров, ₽", data: spend.map(function (r) { return r.charged_rub; }), borderColor: "#2388ff", tension: 0.3 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false } }
+    });
+
+    new Chart(document.getElementById("chart-byok"), {
+      type: "doughnut",
+      data: {
+        labels: byok.map(function (row) { return row.label; }),
+        datasets: [{ data: byok.map(function (row) { return row.requests; }), backgroundColor: ["#2388ff", "#5ce6b0"] }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+})();
+</script>
+{% endblock %}

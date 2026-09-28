@@ -1,0 +1,7 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import billing_summary, status_badge %}
+{% block body %}
+<p style="margin:0 0 12px;">{{ status_badge("Продлено", "success") }}</p>
+<p style="margin:0;font-family:{{ font_stack }};font-size:16px;line-height:1.55;color:{{ colors.muted }};">Тарифный период обновлён. Новый бюджет уже на балансе.</p>
+{{ billing_summary(summary_rows) }}
+{% endblock %}

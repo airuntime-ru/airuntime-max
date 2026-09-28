@@ -1,0 +1,8 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import billing_summary, status_badge, button %}
+{% block body %}
+<p style="margin:0 0 12px;">{{ status_badge("Подключён", "success") }}</p>
+<p style="margin:0;font-family:{{ font_stack }};font-size:16px;line-height:1.55;color:{{ colors.muted }};">Тариф подключён, бюджет уже на балансе. Можно продолжать работу в кабинете.</p>
+{{ billing_summary(summary_rows) }}
+{% if billing_url %}{{ button("Перейти в кабинет", billing_url) }}{% endif %}
+{% endblock %}

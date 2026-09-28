@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: airuntime_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d airuntime_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      PYTHONPATH: backend
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/airuntime_test
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET_KEY: test-secret
+      APP_DOMAIN: airuntime.ru
+      FRONTEND_URL: http://localhost:3000
+      API_URL: http://localhost:8000
+      ALLOWED_ORIGINS: http://localhost:3000
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      GENERATED_PROJECTS_DIR: /tmp/airuntime-projects-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - name: Install Playwright Chromium
+        # Only for test_run_preview_browser.py, which exercises deployment/preview/
+        # run_preview.py's detection logic against a real browser. That test skips cleanly
+        # (not a failure) if this step is ever removed or fails.
+        run: playwright install --with-deps chromium
+      - name: Run migrations
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Pytest
+        run: pytest tests -q
+      - name: Ruff
+        run: ruff check backend/src tests admin
+      - name: Ruff format check
+        run: ruff format --check backend/src tests admin
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+      - name: Build
+        working-directory: frontend
+        run: npm run build

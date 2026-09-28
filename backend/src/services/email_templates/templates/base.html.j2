@@ -1,0 +1,94 @@
+{% from "macros.html.j2" import button, otp_code, info_box, status_badge, divider, security_notice, billing_summary, url_pill %}
+<!DOCTYPE html>
+<html lang="ru" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no" />
+  <meta name="color-scheme" content="light only" />
+  <meta name="supported-color-schemes" content="light only" />
+  <title>{{ subject }}</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style type="text/css">
+    :root {
+      color-scheme: light only;
+      supported-color-schemes: light only;
+    }
+    /* The masthead is deep space by design; a client forcing dark mode must not invert it
+       into something muddy, and the light card below must stay light. */
+    @media (prefers-color-scheme: dark) {
+      .email-masthead,
+      .email-masthead td { background-color: #070C17 !important; }
+      .email-card,
+      .email-body { background-color: #FFFFFF !important; }
+      .email-title { color: #081426 !important; }
+    }
+    @media only screen and (max-width: 620px) {
+      .email-shell { padding: 14px 10px !important; }
+      .email-card { width: 100% !important; }
+      .email-body { padding: 26px 22px !important; }
+      .email-masthead { padding: 22px 22px !important; }
+      .email-footer { padding: 18px 22px !important; }
+      .email-title { font-size: 26px !important; }
+      .email-otp { font-size: 30px !important; letter-spacing: 6px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:{{ colors.page }};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+    {{ preheader }}
+    &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+  </div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="{{ colors.page }}" style="background-color:{{ colors.page }};">
+    <tr>
+      <td align="center" class="email-shell" style="padding:28px 16px;">
+        <table role="presentation" class="email-card" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="{{ colors.surface }}" style="width:600px;max-width:600px;background-color:{{ colors.surface }};border-radius:14px;overflow:hidden;">
+
+          <!-- Deep-space masthead: the same identity as the landing hero. bgcolor carries
+               Outlook, the gradient is progressive enhancement everywhere else. -->
+          <tr>
+            <td class="email-masthead" align="left" bgcolor="{{ colors.space }}" style="padding:26px 36px;background-color:{{ colors.space }};background-image:linear-gradient(135deg,{{ colors.space }} 0%,{{ colors.space_2 }} 62%,#0B1A38 100%);">
+              <a href="{{ frontend_url }}" style="text-decoration:none;">
+                {# Light-ink PNG on transparency, exported at 3x. If a client drops the
+                   alpha channel it composites to black, which the masthead already is. #}
+                <img src="{{ logo_src }}" width="166" height="40" alt="AIRuntime" style="display:block;border:0;outline:none;text-decoration:none;height:40px;width:166px;" />
+              </a>
+            </td>
+          </tr>
+          <!-- Brand hairline. Solid accent for Outlook, gradient for everyone else. -->
+          <tr>
+            <td bgcolor="{{ colors.accent }}" height="3" style="height:3px;line-height:3px;font-size:0;background-color:{{ colors.accent }};background-image:{{ brand_gradient }};">&nbsp;</td>
+          </tr>
+
+          <tr>
+            <td class="email-body" bgcolor="{{ colors.surface }}" style="padding:34px 36px 30px;font-family:{{ font_stack }};color:{{ colors.ink }};background-color:{{ colors.surface }};">
+              <h1 class="email-title" style="margin:0 0 14px;font-family:{{ font_stack }};font-size:29px;line-height:1.18;font-weight:700;letter-spacing:-0.5px;color:{{ colors.ink }};">{{ title }}</h1>
+              {% block body %}{% endblock %}
+            </td>
+          </tr>
+
+          <tr>
+            <td class="email-footer" style="padding:20px 36px 24px;border-top:1px solid {{ colors.border }};background-color:{{ colors.page }};">
+              <p style="margin:0 0 8px;font-family:{{ font_stack }};font-size:13px;line-height:1.5;color:{{ colors.muted }};">
+                <span style="color:{{ colors.ink }};font-weight:600;">{{ brand_name }}</span> ·
+                <a href="{{ frontend_url }}" style="color:{{ colors.accent }};text-decoration:none;">{{ frontend_url.replace('https://', '').replace('http://', '') }}</a>
+              </p>
+              {% if reason %}<p style="margin:0 0 8px;font-family:{{ font_stack }};font-size:12px;line-height:1.5;color:{{ colors.muted }};">{{ reason }}</p>{% endif %}
+              {% if support_email %}<p style="margin:0;font-family:{{ font_stack }};font-size:12px;line-height:1.5;color:{{ colors.muted }};">Поддержка: <a href="mailto:{{ support_email }}" style="color:{{ colors.accent }};text-decoration:none;">{{ support_email }}</a></p>{% endif %}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

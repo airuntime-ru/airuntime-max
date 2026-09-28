@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>AIRuntime — баннер приветствия бота</title>
+  <!--
+  Rendered to frontend/public/brand/max-welcome-v7.jpg.
+
+  MAX cover-crops a 16:9 still into a taller rounded bubble. v6 sat at 150px and
+  the lockup kissed the left radius; v5's 310px looked empty. v7 keeps ~200px
+  so letters stay inside the crop without shrinking the type back to a postage stamp.
+-->
+<style>
+  html, body { margin: 0; padding: 0; width: 1280px; height: 720px; overflow: hidden; }
+  body {
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .banner {
+    position: relative;
+    width: 1280px; height: 720px; overflow: hidden;
+    background: #05070f url("bg-cover.jpg") 50% 50% / cover no-repeat;
+    color: #fff;
+  }
+  .banner::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 42% 58% at 28% 50%, rgba(46, 124, 246, .22), transparent 70%),
+      linear-gradient(90deg, rgba(5, 7, 15, .28) 0%, transparent 28%, transparent 72%, rgba(5, 7, 15, .22) 100%);
+    pointer-events: none;
+  }
+  .copy {
+    position: absolute; left: 200px; top: 0; bottom: 0; width: 520px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .lockup {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 10px;
+    margin-bottom: 22px;
+    padding: 7px 14px 7px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .08);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: .08em;
+  }
+  .lockup img { width: 28px; height: 28px; }
+  .lockup .x { font-weight: 300; color: rgba(255,255,255,.55); letter-spacing: 0; font-size: 16px; }
+  .lockup .max { display: inline-flex; align-items: center; gap: 7px; letter-spacing: .02em; font-size: 15px; }
+  .lockup .max img { width: 28px; height: 28px; }
+  h1 {
+    margin: 0;
+    font-size: 64px;
+    line-height: .94;
+    letter-spacing: -.055em;
+    font-weight: 800;
+    text-shadow: 0 12px 40px rgba(5, 7, 15, .45);
+  }
+  .lead {
+    margin: 18px 0 0;
+    max-width: 26em;
+    font-size: 24px;
+    line-height: 1.32;
+    color: rgba(234,241,255,.86);
+    letter-spacing: -.015em;
+  }
+  .lead b { color: #fff; font-weight: 700; }
+
+  .phone {
+    --pw: 214px;
+    position: absolute; right: 200px; top: 50%; transform: translateY(-50%);
+    width: var(--pw);
+    border-radius: calc(var(--pw) * .09); padding: calc(var(--pw) * .028);
+    background: linear-gradient(165deg, #3a445c, #121826);
+    box-shadow:
+      0 28px 60px -22px rgba(0, 0, 0, .88),
+      0 0 0 1px rgba(255, 255, 255, .1),
+      0 0 48px -10px rgba(46, 124, 246, .38);
+  }
+  .phone img { display: block; width: 100%; aspect-ratio: 1 / 2; border-radius: calc(var(--pw) * .065); }
+</style>
+</head>
+<body>
+  <div class="banner">
+    <div class="copy">
+      <div class="lockup">
+        <img src="mark-airuntime.png" alt="" />
+        <span>AIRUNTIME</span>
+        <span class="x">×</span>
+        <span class="max"><img src="mark-max.png" alt="" />max</span>
+      </div>
+      <h1>AIRuntime</h1>
+      <p class="lead">Запись к вам&nbsp;— <b>прямо в&nbsp;MAX</b>.<br />Соберите в приложении.</p>
+    </div>
+    <div class="phone"><img src="shot-storefront.png" alt="" /></div>
+  </div>
+</body>
+</html>

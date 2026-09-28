@@ -1,0 +1,9 @@
+proxy:
+  provider: nginx
+  base_domain: airuntime.ru
+  ssl:
+    mode: auto
+  routes:
+    - project_slug: demo-project
+      subdomain: demo-project.airuntime.ru
+      target: http://demo-project:3000

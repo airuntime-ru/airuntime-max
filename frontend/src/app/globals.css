@@ -1,0 +1,973 @@
+@import "tailwindcss";
+
+:root {
+  --ar-white: #ffffff;
+  --ar-cloud: #f8f9fb;
+  --ar-canvas: #f4f5f7;
+  --ar-pearl: #eef2f7;
+  --ar-mist: #5a6578;
+  --ar-stone: #8b95a7;
+  --ar-graphite: #1f2a3d;
+  --ar-black: #0b1220;
+
+  --ar-sky: #1f7aef;
+  --ar-cyan: #0f9bb5;
+  --ar-indigo: #4f5fd6;
+  --ar-lilac: #8b7fd6;
+  --ar-mint: #2f9e6e;
+  --ar-gold: #c9922e;
+  --ar-coral: #d9554a;
+  --ar-success: #1f8a55;
+  --ar-warning: #b8860b;
+  --ar-danger: #c43c35;
+
+  /* Deep-space palette. The landing alternates light "daylight" sections with these
+     dark ones, so every dark surface is mixed from exactly these three values. */
+  --ar-space: #05070f;
+  --ar-space-2: #0a1123;
+  --ar-nebula: #171045;
+  --ar-violet: #7c6cff;
+  --ar-glow-sky: #2388ff;
+  --ar-glow-cyan: #19c7d2;
+  --ar-glow-mint: #5ce6b0;
+
+  --ar-surface-1: #ffffff;
+  --ar-surface-2: #ffffff;
+  --ar-surface-3: #f8f9fb;
+  --ar-border: rgba(15, 23, 42, 0.1);
+  --ar-border-strong: rgba(31, 122, 239, 0.35);
+
+  --background: #f4f5f7;
+  --foreground: var(--ar-black);
+
+  --ar-radius-sm: 0.625rem;
+  --ar-radius-md: 0.75rem;
+  --ar-radius-lg: 0.875rem;
+  --ar-radius-xl: 1rem;
+
+  --ar-blur: 8px;
+  --ar-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --ar-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --ar-shadow: var(--ar-shadow-md);
+  --ar-transition: 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  --ar-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --ar-ink: #04050a;
+  --ar-ink-2: #0a0d18;
+  --ar-ink-surface: rgba(255, 255, 255, 0.045);
+  --ar-ink-surface-strong: rgba(255, 255, 255, 0.08);
+  --ar-ink-border: rgba(255, 255, 255, 0.08);
+  --ar-ink-border-strong: rgba(255, 255, 255, 0.16);
+  --ar-ink-text: rgba(255, 255, 255, 0.56);
+  --ar-ink-text-strong: #f4f8ff;
+  --ar-accent-gradient: linear-gradient(135deg, #2388ff 0%, #6975ff 55%, #b69cff 100%);
+  --ar-accent-gradient-soft: linear-gradient(135deg, rgba(35, 136, 255, 0.16), rgba(105, 117, 255, 0.14) 55%, rgba(182, 156, 255, 0.14));
+
+  /* One 200x200 SVG tile of stars, reused by every dark surface. A single tiled image
+     costs one paint; the dozens-of-radial-gradients trick costs one per star. */
+  --ar-starfield: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='%23fff'%3E%3Ccircle cx='20' cy='31' r='1' opacity='.85'/%3E%3Ccircle cx='141' cy='52' r='.8' opacity='.55'/%3E%3Ccircle cx='74' cy='119' r='1.2' opacity='.7'/%3E%3Ccircle cx='181' cy='161' r='.7' opacity='.45'/%3E%3Ccircle cx='41' cy='176' r='.9' opacity='.6'/%3E%3Ccircle cx='112' cy='14' r='.6' opacity='.4'/%3E%3Ccircle cx='166' cy='96' r='1' opacity='.5'/%3E%3Ccircle cx='96' cy='72' r='.6' opacity='.38'/%3E%3Ccircle cx='8' cy='94' r='.7' opacity='.42'/%3E%3Ccircle cx='128' cy='188' r='.8' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+@theme {
+  /* Tailwind stops at 2xl (96rem). A 27" display is 1920-2560 CSS px, which is a
+     different layout problem from a 1536px laptop, so it gets its own step. */
+  --breakpoint-3xl: 120rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+a,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer components {
+/* ---------------------------------------------------------------------------
+   Deep space surfaces
+   Every animation below moves transform/opacity only - no animated blur, no
+   animated background-position - so the compositor handles them without
+   repainting. Static blurs are fine: they paint once.
+   --------------------------------------------------------------------------- */
+
+.cosmos {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(35, 136, 255, 0.22), transparent 62%),
+    radial-gradient(ellipse 60% 50% at 12% 20%, rgba(124, 108, 255, 0.22), transparent 66%),
+    radial-gradient(ellipse 66% 54% at 92% 72%, rgba(25, 199, 210, 0.14), transparent 68%),
+    linear-gradient(178deg, var(--ar-space) 0%, var(--ar-space-2) 46%, #070c1a 100%);
+  color: #eaf1ff;
+}
+
+/* Star layer. Two tiles at different scales give parallax depth from one image. */
+.cosmos-stars::before,
+.cosmos-stars::after {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--ar-starfield);
+  background-repeat: repeat;
+  will-change: transform;
+}
+
+.cosmos-stars::before {
+  background-size: 200px 200px;
+  opacity: 0.5;
+  animation: star-drift-a 150s linear infinite;
+}
+
+.cosmos-stars::after {
+  background-size: 340px 340px;
+  opacity: 0.32;
+  animation: star-drift-b 220s linear infinite;
+}
+
+/* Same starfield with the drift switched off - for surfaces that mount on every
+   authenticated page, where a forever-running animation is not worth the cost. */
+.cosmos-stars-still::before,
+.cosmos-stars-still::after {
+  animation: none;
+}
+
+/* Slow nebula bloom. One statically blurred blob, moved on the GPU. */
+.aurora-blob {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(64px);
+  opacity: 0.55;
+  will-change: transform;
+  animation: aurora-float 22s ease-in-out infinite alternate;
+}
+
+.aurora-blob-slow {
+  animation-duration: 30s;
+  animation-direction: alternate-reverse;
+}
+
+/* Thin elliptical orbit rings behind the hero visual. */
+.orbit-ring {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 180, 255, 0.16);
+  will-change: transform;
+  animation: orbit-spin 46s linear infinite;
+}
+
+.orbit-ring-reverse {
+  border-color: rgba(124, 108, 255, 0.16);
+  animation-duration: 66s;
+  animation-direction: reverse;
+}
+
+/* Horizon glow that seals a dark section into the light one below it. */
+.cosmos-horizon {
+  position: absolute;
+  inset: auto 0 0;
+  height: 34vh;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 100% at 50% 128%, rgba(35, 136, 255, 0.42), rgba(124, 108, 255, 0.16) 42%, transparent 72%);
+}
+
+/* ---------------------------------------------------------------------------
+   Light surfaces
+   --------------------------------------------------------------------------- */
+
+.daylight {
+  position: relative;
+  background:
+    radial-gradient(ellipse 70% 44% at 50% 0%, rgba(35, 136, 255, 0.06), transparent 64%),
+    linear-gradient(180deg, #ffffff 0%, #f6f8fc 100%);
+}
+
+/* Faint star dust for light surfaces - the cabinet's "cosmic but weightless" cue. */
+.stardust::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--ar-starfield);
+  background-size: 260px 260px;
+  filter: invert(1);
+  opacity: 0.05;
+}
+
+.glass {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(246, 251, 255, 0.62)),
+    linear-gradient(90deg, rgba(35, 136, 255, 0.035), rgba(100, 220, 168, 0.032), rgba(182, 156, 255, 0.03));
+  border: 1px solid var(--ar-border);
+  backdrop-filter: blur(var(--ar-blur));
+  box-shadow: 0 18px 58px rgba(84, 123, 176, 0.1);
+}
+
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.82), transparent 28%, rgba(255, 255, 255, 0.28) 52%, transparent 76%);
+  opacity: 0.58;
+}
+
+.glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Card that sits on light backgrounds: a hairline gradient crown on top, a lift on hover. */
+.sky-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -18px rgba(15, 23, 42, 0.24);
+  transition: transform var(--ar-transition), box-shadow var(--ar-transition), border-color var(--ar-transition);
+}
+
+.sky-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(35, 136, 255, 0.5), rgba(124, 108, 255, 0.42), transparent);
+  opacity: 0;
+  transition: opacity var(--ar-transition);
+}
+
+.sky-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(35, 136, 255, 0.24);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 26px 56px -26px rgba(35, 136, 255, 0.4);
+}
+
+.sky-card-hover:hover::before {
+  opacity: 1;
+}
+
+/* Dark twin of .sky-card, for panels inside .cosmos sections. */
+.void-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  transition: transform var(--ar-transition), border-color var(--ar-transition), background var(--ar-transition);
+}
+
+.void-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(120, 180, 255, 0.55), transparent);
+  opacity: 0.5;
+  transition: opacity var(--ar-transition);
+}
+
+.void-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(120, 180, 255, 0.3);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+}
+
+.void-card-hover:hover::before {
+  opacity: 1;
+}
+
+.panel-ink {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 120% 42% at 50% 0%, rgba(35, 136, 255, 0.16), transparent 68%),
+    linear-gradient(180deg, #0c1424 0%, #070c17 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+.panel-ink::before {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Type, accents, controls
+   --------------------------------------------------------------------------- */
+
+.accent-text {
+  background: var(--ar-accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Headline word on dark surfaces. */
+.text-cosmic {
+  background: linear-gradient(100deg, #9fd4ff 0%, #7c6cff 42%, #5ce6b0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Headline word on light surfaces. */
+.text-daylight {
+  background: linear-gradient(100deg, #1f7aef 0%, #6975ff 52%, #12b5c9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Neon marker behind a word, the way hse-spb-bc highlights its verb. */
+.marker-glow {
+  position: relative;
+  white-space: nowrap;
+}
+
+.marker-glow > span {
+  position: relative;
+  z-index: 1;
+}
+
+.marker-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0.1em -0.24em 0.14em;
+  z-index: 0;
+  border-radius: 0.24em;
+  background: linear-gradient(100deg, #2388ff, #7c6cff 55%, #19c7d2);
+  box-shadow: 0 0 44px rgba(52, 138, 255, 0.55);
+}
+
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(120deg, #2388ff 0%, #6d6cff 52%, #19c7d2 100%);
+  color: #fff;
+  box-shadow: 0 10px 30px -10px rgba(45, 130, 255, 0.85);
+  transition: transform var(--ar-transition), box-shadow var(--ar-transition);
+}
+
+.btn-glow:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px -12px rgba(45, 130, 255, 0.95);
+}
+
+.btn-glow:active {
+  transform: translateY(0);
+}
+
+/* Sheen sweeps across only while hovered, so it costs nothing at rest. */
+.btn-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.42) 46%, transparent 70%);
+  transform: translateX(-120%);
+}
+
+.btn-glow:hover::after {
+  animation: sheen 900ms var(--ar-ease-out);
+}
+
+.accent-ring {
+  box-shadow: 0 0 0 1px rgba(35, 136, 255, 0.16), 0 18px 46px rgba(35, 136, 255, 0.1);
+}
+
+/* Live status dot: a halo that expands and fades. */
+.live-dot {
+  position: relative;
+}
+
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid currentColor;
+  opacity: 0;
+  animation: pulse-ring 2.6s ease-out infinite;
+}
+
+/* Indeterminate build progress: one sweeping highlight, transform-only. */
+.beacon-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.beacon-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, #2388ff, transparent);
+  will-change: transform;
+  animation: beacon-sweep 1.7s ease-in-out infinite;
+}
+
+.breathe {
+  animation: breathe 4.8s ease-in-out infinite;
+}
+
+.float {
+  animation: float 7s ease-in-out infinite;
+}
+
+.nav-pill {
+  position: relative;
+  color: rgba(255, 255, 255, 0.62);
+  transition: color var(--ar-transition), background var(--ar-transition);
+}
+
+.nav-pill:hover {
+  color: #f4f8ff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(31, 122, 239, 0.45);
+}
+
+.nav-pill-active {
+  color: #f4f8ff;
+  background: linear-gradient(100deg, rgba(35, 136, 255, 0.26), rgba(124, 108, 255, 0.14));
+  box-shadow: inset 2px 0 0 #4f9dff;
+}
+
+.nav-icon-active {
+  background: linear-gradient(135deg, rgba(35, 136, 255, 0.4), rgba(124, 108, 255, 0.32));
+  color: #ffffff;
+  box-shadow: 0 6px 18px -8px rgba(35, 136, 255, 0.9);
+}
+
+/* ---------------------------------------------------------------------------
+   Motion primitives
+   --------------------------------------------------------------------------- */
+
+/* Scroll reveal. Driven by IntersectionObserver adding .is-in - no scroll handler. */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition: opacity 620ms var(--ar-ease-out), transform 620ms var(--ar-ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marquee var(--marquee-duration, 38s) linear infinite;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* ---------------------------------------------------------------------------
+   App shell
+   --------------------------------------------------------------------------- */
+
+/* No background-attachment: fixed here - it forces a full repaint on every scroll frame,
+   and this shell wraps every authenticated page. */
+.app-shell {
+  position: relative;
+  background:
+    radial-gradient(ellipse 120% 46% at 50% -6%, rgba(35, 136, 255, 0.09), transparent 62%),
+    radial-gradient(ellipse 60% 40% at 96% 4%, rgba(124, 108, 255, 0.08), transparent 66%),
+    linear-gradient(180deg, #f7f9fd 0%, #f3f5f9 52%, #eef3fa 100%);
+}
+
+.atmosphere {
+  position: relative;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 6%, rgba(35, 136, 255, 0.12), transparent 66%),
+    radial-gradient(ellipse 62% 50% at 16% 34%, rgba(124, 108, 255, 0.1), transparent 68%),
+    radial-gradient(ellipse 58% 46% at 86% 26%, rgba(25, 199, 210, 0.09), transparent 70%),
+    linear-gradient(180deg, #ffffff 0%, #f5f7fc 52%, #eaf2ff 100%);
+}
+
+.atmosphere-grid {
+  background:
+    radial-gradient(ellipse 72% 48% at 50% 0%, rgba(255, 255, 255, 0.6), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 54%);
+}
+
+/* ---------------------------------------------------------------------------
+   Chat / markdown (unchanged behaviour, kept alongside the new system)
+   --------------------------------------------------------------------------- */
+
+.ai-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ai-typing span {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--ar-sky), var(--ar-cyan));
+  box-shadow: 0 0 16px rgba(35, 136, 255, 0.28);
+  animation: typing-bounce 1.05s ease-in-out infinite;
+}
+
+.ai-typing span:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.ai-typing span:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+/* highlight.js/github-dark paints the inner <code> dark; a light <pre> around it reads as two
+   nested boxes, so the block owns the dark surface and the code sits transparent on top. */
+.prose-chat pre {
+  position: relative;
+  border-radius: 0.7rem;
+  background: #0d1117 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+}
+
+.prose-chat pre code {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.prose-chat code {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 0.875em;
+}
+
+.prose-chat p {
+  margin: 0.5rem 0;
+  line-height: 1.7;
+}
+
+/* Tailwind's preflight strips list markers globally; the agent writes plenty of markdown
+   lists, and without these they render as unindented bare lines. */
+.prose-chat ul,
+.prose-chat ol {
+  margin: 0.5rem 0;
+  padding-left: 1.35rem;
+}
+
+.prose-chat ul {
+  list-style: disc;
+}
+
+.prose-chat ol {
+  list-style: decimal;
+}
+
+.prose-chat li {
+  margin: 0.2rem 0;
+  line-height: 1.65;
+}
+
+.prose-chat li::marker {
+  color: var(--ar-stone);
+}
+
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3 {
+  margin: 1.1rem 0 0.45rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.prose-chat h1 {
+  font-size: 1.15em;
+}
+
+.prose-chat h2 {
+  font-size: 1.08em;
+}
+
+.prose-chat h3 {
+  font-size: 1em;
+}
+
+.prose-chat blockquote {
+  margin: 0.6rem 0;
+  border-left: 2px solid rgba(35, 136, 255, 0.35);
+  padding-left: 0.85rem;
+  color: var(--ar-mist);
+}
+
+.prose-chat table {
+  width: 100%;
+  margin: 0.6rem 0;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.prose-chat th,
+.prose-chat td {
+  border: 1px solid rgba(7, 20, 38, 0.1);
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+}
+
+.prose-chat th {
+  background: rgba(7, 20, 38, 0.03);
+  font-weight: 600;
+}
+
+.prose-chat-compact p {
+  margin: 0.28rem 0;
+  line-height: 1.5;
+}
+
+.prose-chat-cursor p {
+  margin: 0.35rem 0;
+  line-height: 1.65;
+}
+
+.prose-chat-cursor p:first-child {
+  margin-top: 0;
+}
+
+.prose-chat-cursor p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-chat-cursor h1,
+.prose-chat-cursor h2,
+.prose-chat-cursor h3 {
+  margin: 1rem 0 0.5rem;
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.prose-chat-cursor ul,
+.prose-chat-cursor ol {
+  margin: 0.35rem 0;
+  padding-left: 1.25rem;
+}
+
+.prose-chat-cursor li {
+  margin: 0.15rem 0;
+}
+
+.prose-chat-cursor code:not(pre code) {
+  border-radius: 0.25rem;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+
+.prose-chat a {
+  color: var(--ar-sky);
+  text-decoration: underline;
+  text-decoration-color: rgba(35, 136, 255, 0.28);
+  text-underline-offset: 3px;
+}
+
+/* Themed thin scrollbar for small inline-scrolling panels (tool activity feed, collapsed
+   report body) - the default OS scrollbar looks out of place against this design's soft
+   glass/gradient surfaces. */
+.scrollbar-airy {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(93, 107, 132, 0.4) transparent;
+}
+
+.scrollbar-airy::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-airy::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-airy::-webkit-scrollbar-thumb {
+  background: rgba(93, 107, 132, 0.35);
+  border-radius: 999px;
+}
+
+.scrollbar-airy::-webkit-scrollbar-thumb:hover {
+  background: rgba(93, 107, 132, 0.55);
+}
+
+/* <summary> gets a native disclosure triangle in every browser by default - jarring next to
+   this app's lucide-react icon system. Swapped for a ChevronDown that rotates on [open] instead
+   (see the report <details> in chat/page.tsx). */
+.report-summary {
+  list-style: none;
+}
+
+.report-summary::-webkit-details-marker {
+  display: none;
+}
+}
+
+@keyframes star-drift-a {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-200px, -120px, 0);
+  }
+}
+
+@keyframes star-drift-b {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(170px, -200px, 0);
+  }
+}
+
+@keyframes aurora-float {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(4%, 3%, 0) scale(1.12);
+  }
+}
+
+@keyframes orbit-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes sheen {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes beacon-sweep {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(370%);
+  }
+}
+
+@keyframes typing-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.82);
+    opacity: 0.42;
+  }
+  45% {
+    transform: translateY(-0.22rem) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.68;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@layer components {
+/* ---------------------------------------------------------------------------
+   Landing width scale
+   The page was laid out for <=1280px, so on a 27" display (1920-2560 CSS px) a
+   fixed 72rem column sat in the middle with a third of the screen empty either
+   side. The column steps up with the screen and then stops at 120rem: past that
+   even a card grid starts to read as a scattered row rather than a block.
+
+   The column always grows slower than the screen, so the gutters widen too - the
+   prose inside keeps its own measure (max-w-2xl and friends), only the grids and
+   the hero's two columns take the extra width.
+
+   .landing-container carries the gutter too; .landing-measure is the same scale
+   for elements that bring their own padding (the header pill).
+   --------------------------------------------------------------------------- */
+
+.landing-measure,
+.landing-container {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.landing-container {
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 40rem) {
+  .landing-container {
+    padding-inline: 2rem;
+  }
+}
+
+/* Each step keeps ~6rem of margin either side at the screen width that triggers
+   it, so the column never crowds the edge of a 1440 or 1536 laptop. */
+@media (min-width: 90rem) {
+  .landing-measure,
+  .landing-container {
+    max-width: 78rem;
+  }
+}
+
+@media (min-width: 96rem) {
+  .landing-measure,
+  .landing-container {
+    max-width: 84rem;
+  }
+
+  .landing-container {
+    padding-inline: 2.5rem;
+  }
+}
+
+@media (min-width: 120rem) {
+  .landing-measure,
+  .landing-container {
+    max-width: 96rem;
+  }
+
+  .landing-container {
+    padding-inline: 3rem;
+  }
+}
+
+/* 2560px panels (27-32") and ultrawides, where a 96rem column left 40-55% of the
+   screen empty either side. */
+@media (min-width: 144rem) {
+  .landing-measure,
+  .landing-container {
+    max-width: 108rem;
+  }
+
+  .landing-container {
+    padding-inline: 3.5rem;
+  }
+}
+
+@media (min-width: 160rem) {
+  .landing-measure,
+  .landing-container {
+    max-width: 120rem;
+  }
+
+  .landing-container {
+    padding-inline: 4rem;
+  }
+}
+}
+
+.landing-shell {
+  overflow-x: clip;
+}
+
+.landing-shell :focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cosmos-stars::before,
+  .cosmos-stars::after,
+  .aurora-blob,
+  .orbit-ring,
+  .marquee-track,
+  .float,
+  .breathe,
+  .beacon-bar::after,
+  .live-dot::after {
+    animation: none !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}

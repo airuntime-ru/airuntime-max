@@ -1,0 +1,175 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}Продуктовая аналитика | {{ site_title|default:_("Django site admin") }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label='product_analytics' %}">Продуктовая аналитика</a>
+  &rsaquo; Дашборд
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .pa-toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .pa-filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .pa-filters label { font-size:12px; color:var(--body-quiet-color); margin-right:4px; }
+  .pa-filters select { min-height:34px; padding:4px 10px; border:1px solid var(--border-color); border-radius:8px; background:var(--body-bg); color:var(--body-fg); }
+  .pa-nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+  .pa-nav a { padding:8px 14px; border-radius:999px; border:1px solid var(--border-color); text-decoration:none; color:var(--body-fg); font-size:13px; font-weight:600; }
+  .pa-nav a.is-active { background:var(--primary); border-color:var(--primary); color:var(--primary-fg); }
+  .pa-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:22px; }
+  .pa-tile { border:1px solid var(--border-color); border-radius:10px; padding:14px 16px; background:var(--body-bg); }
+  .pa-tile__label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--body-quiet-color); }
+  .pa-tile__value { font-size:26px; font-weight:600; margin-top:6px; }
+  .pa-tile__delta { font-size:12px; margin-top:4px; }
+  .pa-up { color:#2e7d32; } .pa-down { color:#c62828; } .pa-flat { color:var(--body-quiet-color); }
+  .pa-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:18px; margin-bottom:22px; }
+  .pa-card { border:1px solid var(--border-color); border-radius:10px; padding:16px; background:var(--body-bg); }
+  .pa-card h2 { font-size:14px; margin:0 0 12px; }
+  .pa-card canvas { max-height:260px; }
+  .pa-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .pa-table th, .pa-table td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--hairline-color); }
+  .pa-table th { font-weight:600; color:var(--body-quiet-color); }
+  .pa-table td.num, .pa-table th.num { text-align:right; font-variant-numeric:tabular-nums; }
+</style>
+
+<nav class="pa-nav">
+  <a href="{% url 'admin:product_analytics_dashboard' %}" class="is-active">Продукт</a>
+  <a href="{{ billing_analytics_url }}">Расходы и маржа</a>
+</nav>
+
+<div class="pa-toolbar">
+  <form method="get" class="pa-filters">
+    <span>
+      <label for="days">Период</label>
+      <select id="days" name="days" onchange="this.form.submit()">
+        <option value="7" {% if days == 7 %}selected{% endif %}>7 дней</option>
+        <option value="30" {% if days == 30 %}selected{% endif %}>30 дней</option>
+        <option value="90" {% if days == 90 %}selected{% endif %}>90 дней</option>
+      </select>
+    </span>
+    <span>
+      <label for="platform">Платформа</label>
+      <select id="platform" name="platform" onchange="this.form.submit()">
+        <option value="all" {% if platform == "all" %}selected{% endif %}>Все платформы</option>
+        {% for p in available_platforms %}
+        <option value="{{ p }}" {% if platform == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </span>
+  </form>
+  <div>
+    <a href="{% url 'admin:product_analytics_export_csv' report='dau' %}?days={{ days }}&amp;platform={{ platform }}">CSV: DAU</a>
+    &nbsp;·&nbsp;
+    <a href="{% url 'admin:product_analytics_export_csv' report='top-screens' %}?days={{ days }}&amp;platform={{ platform }}">CSV: экраны</a>
+    &nbsp;·&nbsp;
+    <a href="{% url 'admin:product_analytics_export_csv' report='retention' %}?days={{ days }}&amp;platform={{ platform }}">CSV: retention</a>
+  </div>
+</div>
+
+<div class="pa-tiles" id="pa-tiles"></div>
+
+<div class="pa-grid">
+  <div class="pa-card" style="grid-column:1/-1;">
+    <h2>DAU — уникальные пользователи по дням</h2>
+    <canvas id="pa-dau-chart"></canvas>
+  </div>
+  <div class="pa-card">
+    <h2>Топ экранов</h2>
+    <table class="pa-table" id="pa-screens"></table>
+  </div>
+  <div class="pa-card">
+    <h2>Платформы</h2>
+    <canvas id="pa-platform-chart"></canvas>
+  </div>
+</div>
+
+<div class="pa-card">
+  <h2>Retention D1 / D7 / D30</h2>
+  <table class="pa-table" id="pa-retention"></table>
+</div>
+
+{{ kpis_json|json_script:"data-kpis" }}
+{{ dau_series_json|json_script:"data-dau" }}
+{{ top_screens_json|json_script:"data-screens" }}
+{{ platforms_json|json_script:"data-platforms" }}
+{{ retention_json|json_script:"data-retention" }}
+
+<script src="{% static 'core/vendor/chart.umd.min.js' %}"></script>
+<script>
+(function () {
+  // json_script writes the value as a JSON string; parse twice to get the object.
+  var read = function (id) {
+    var node = document.getElementById(id);
+    if (!node) return null;
+    var raw = JSON.parse(node.textContent);
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
+  };
+
+  var kpis = read("data-kpis") || { tiles: [] };
+  var dau = read("data-dau") || [];
+  var screens = read("data-screens") || [];
+  var platforms = read("data-platforms") || [];
+  var retention = read("data-retention") || { cohorts: [] };
+
+  var fmt = function (v) { return typeof v === "number" ? v.toLocaleString("ru-RU") : v; };
+
+  document.getElementById("pa-tiles").innerHTML = kpis.tiles.map(function (tile) {
+    var delta = "";
+    if (tile.delta_pct !== null && tile.delta_pct !== undefined) {
+      var cls = tile.delta_pct > 0 ? "pa-up" : tile.delta_pct < 0 ? "pa-down" : "pa-flat";
+      var sign = tile.delta_pct > 0 ? "+" : "";
+      delta = '<div class="pa-tile__delta ' + cls + '">' + sign + tile.delta_pct + "% к прошлому периоду</div>";
+    }
+    return '<div class="pa-tile"><div class="pa-tile__label">' + tile.label +
+      '</div><div class="pa-tile__value">' + fmt(tile.value) + '</div>' + delta + '</div>';
+  }).join("");
+
+  document.getElementById("pa-screens").innerHTML =
+    "<tr><th>Экран</th><th class='num'>Просмотры</th><th class='num'>Ср. время, мс</th></tr>" +
+    (screens.length
+      ? screens.map(function (row) {
+          return "<tr><td>" + row.screen + "</td><td class='num'>" + fmt(row.views) +
+            "</td><td class='num'>" + fmt(row.avg_duration_ms) + "</td></tr>";
+        }).join("")
+      : "<tr><td colspan='3'>Пока нет просмотров экранов за выбранный период.</td></tr>");
+
+  document.getElementById("pa-retention").innerHTML =
+    "<tr><th>Когорта</th><th class='num'>Размер</th><th class='num'>D1</th><th class='num'>D7</th><th class='num'>D30</th></tr>" +
+    ((retention.cohorts || []).length
+      ? retention.cohorts.map(function (row) {
+          return "<tr><td>" + row.cohort_day + "</td><td class='num'>" + fmt(row.cohort_size) +
+            "</td><td class='num'>" + row.d1_pct + "%</td><td class='num'>" + row.d7_pct +
+            "%</td><td class='num'>" + row.d30_pct + "%</td></tr>";
+        }).join("")
+      : "<tr><td colspan='5'>Недостаточно данных для retention — нужны повторные визиты.</td></tr>");
+
+  if (window.Chart) {
+    try {
+      new Chart(document.getElementById("pa-dau-chart"), {
+        type: "line",
+        data: {
+          labels: dau.map(function (r) { return r.day; }),
+          datasets: [{ label: "DAU", data: dau.map(function (r) { return r.dau; }), borderColor: "#2388ff", tension: 0.3 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      new Chart(document.getElementById("pa-platform-chart"), {
+        type: "doughnut",
+        data: {
+          labels: platforms.length ? platforms.map(function (r) { return r.platform; }) : ["нет данных"],
+          datasets: [{ data: platforms.length ? platforms.map(function (r) { return r.events; }) : [1], backgroundColor: ["#2388ff", "#5ce6b0", "#ffb020", "#c62828"] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    } catch (err) {
+      console.error("product analytics charts failed", err);
+    }
+  }
+})();
+</script>
+{% endblock %}

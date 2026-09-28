@@ -1,0 +1,67 @@
+http:
+  routers:
+    frontend:
+      rule: Host(`airuntime.ru`) || Host(`www.airuntime.ru`)
+      entryPoints:
+        - websecure
+      service: frontend
+      tls:
+        certResolver: letsencrypt
+
+    api:
+      rule: Host(`api.airuntime.ru`)
+      entryPoints:
+        - websecure
+      service: backend
+      tls:
+        certResolver: letsencrypt
+
+    admin:
+      rule: Host(`admin.airuntime.ru`)
+      entryPoints:
+        - websecure
+      service: django-admin
+      tls:
+        certResolver: letsencrypt
+
+    minio:
+      rule: Host(`s3.airuntime.ru`)
+      entryPoints:
+        - websecure
+      service: minio
+      tls:
+        certResolver: letsencrypt
+
+    minio-console:
+      rule: Host(`s3-console.airuntime.ru`)
+      entryPoints:
+        - websecure
+      service: minio-console
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: http://frontend:3000
+
+    backend:
+      loadBalancer:
+        servers:
+          - url: http://backend:8000
+
+    django-admin:
+      loadBalancer:
+        servers:
+          - url: http://django-admin:8001
+
+    minio:
+      loadBalancer:
+        servers:
+          - url: http://minio:9000
+
+    minio-console:
+      loadBalancer:
+        servers:
+          - url: http://minio:9001

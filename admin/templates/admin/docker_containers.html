@@ -1,0 +1,141 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Главная</a> &rsaquo; Docker контейнеры
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .docker-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+  }
+
+  .docker-toolbar a {
+    border: 1px solid var(--hairline-color);
+    border-radius: 999px;
+    padding: 8px 12px;
+    text-decoration: none;
+  }
+
+  .docker-toolbar a.active {
+    background: var(--primary);
+    color: var(--primary-fg);
+  }
+
+  .docker-table {
+    width: 100%;
+  }
+
+  .docker-table td,
+  .docker-table th {
+    vertical-align: top;
+  }
+
+  .docker-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .docker-actions button {
+    border: 1px solid var(--hairline-color);
+    border-radius: 6px;
+    padding: 6px 9px;
+    background: var(--body-bg);
+    cursor: pointer;
+  }
+
+  .docker-actions button.danger {
+    border-color: #f3b5bd;
+    color: #b42335;
+  }
+
+  .docker-badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 2px 8px;
+    background: var(--selected-bg);
+    font-size: 12px;
+    font-weight: 600;
+  }
+</style>
+
+<div class="docker-toolbar">
+  <a class="active" href="{% url 'admin_docker_containers' %}">Контейнеры</a>
+  <a href="{% url 'admin_docker_images' %}">Образы</a>
+  <a href="{% url 'admin_docker_resources' %}">Ресурсы</a>
+</div>
+
+{% if docker_error %}
+  <p class="errornote">Docker недоступен: {{ docker_error.message }}</p>
+{% endif %}
+
+<div class="module">
+  <table class="docker-table">
+    <thead>
+      <tr>
+        <th>Контейнер</th>
+        <th>Образ</th>
+        <th>Статус</th>
+        <th>Проект / владелец</th>
+        <th>Порты</th>
+        <th>Создан</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for container in containers %}
+        <tr>
+          <td>
+            <strong>{{ container.name }}</strong><br>
+            <span class="quiet">{{ container.short_id }}</span>
+            {% if container.managed %}<br><span class="docker-badge">AIRuntime</span>{% endif %}
+          </td>
+          <td>{{ container.image }}</td>
+          <td>{{ container.status }}</td>
+          <td>
+            {% if container.project_name %}
+              <strong>{{ container.project_name }}</strong><br>
+              <span class="quiet">{{ container.owner_email }}</span><br>
+              <span class="quiet">{{ container.project_id }}</span>
+            {% else %}
+              {{ container.project_id|default:"-" }}
+            {% endif %}
+          </td>
+          <td><code>{{ container.ports }}</code></td>
+          <td>{{ container.created }}</td>
+          <td>
+            <div class="docker-actions">
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="container_id" value="{{ container.id }}">
+                <input type="hidden" name="action" value="stop">
+                <button type="submit">Стоп</button>
+              </form>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="container_id" value="{{ container.id }}">
+                <input type="hidden" name="action" value="restart">
+                <button type="submit">Рестарт</button>
+              </form>
+              <form method="post" onsubmit="return confirm('Удалить контейнер {{ container.name }}?');">
+                {% csrf_token %}
+                <input type="hidden" name="container_id" value="{{ container.id }}">
+                <input type="hidden" name="action" value="remove">
+                <button class="danger" type="submit">Удалить</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">Контейнеров нет.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

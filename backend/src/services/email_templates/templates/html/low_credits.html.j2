@@ -1,0 +1,9 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import button, billing_summary, status_badge %}
+{% block body %}
+<p style="margin:0 0 12px;">{{ status_badge("Низкий баланс", "warning") }}</p>
+<p style="margin:0;font-family:{{ font_stack }};font-size:16px;line-height:1.55;color:{{ colors.muted }};">На балансе осталось немного. Когда он закончится, новые запросы к агенту будут временно недоступны.</p>
+{{ billing_summary(summary_rows) }}
+{% if billing_url %}{{ button("Пополнить баланс", billing_url) }}{% endif %}
+<p style="margin:12px 0 0;font-family:{{ font_stack }};font-size:14px;line-height:1.5;color:{{ colors.muted }};">Баланс также обновится автоматически в начале следующего тарифного периода.</p>
+{% endblock %}

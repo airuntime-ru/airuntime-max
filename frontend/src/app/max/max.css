@@ -1,0 +1,2984 @@
+/* MAX mini app surface.
+   Deliberately not the AIRuntime landing look: inside a messenger the page should read as
+   part of the client, so this follows MAX's own visual language - flat white sheets, a
+   blue-violet accent, generous tap targets - rather than the cosmic marketing theme.
+   Every storefront sets --max-accent from its own config, so one stylesheet themes them all. */
+
+.max-app {
+  --max-accent: #2e7cf6;
+  --max-on-accent: #ffffff;
+  --max-ink: #10141c;
+  --max-muted: #6b7482;
+  --max-line: rgba(16, 20, 28, 0.08);
+  --max-sheet: #ffffff;
+  --max-bg: #f2f4f7;
+  --max-radius: 14px;
+
+  min-height: 100dvh;
+  background: var(--max-bg);
+  color: var(--max-ink);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The storefront owns its colour scheme. Inheriting the host OS scheme used to combine
+   white text with a light mood surface (the exact white-on-white failure from MAX desktop). */
+
+.max-shell {
+  width: 100%;
+  max-width: 560px;
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding: 16px 16px 0;
+  /* Column layout so the action bar can be pushed to the bottom edge when the storefront
+     is short; without it the sticky bar floats mid-screen with blank space under it. */
+  display: flex;
+  flex-direction: column;
+  background: var(--max-bg);
+  color: var(--max-ink);
+}
+
+.max-sheet {
+  background: var(--max-sheet);
+  border-radius: var(--max-radius);
+  border: 1px solid var(--max-line);
+}
+
+.max-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 18px 15px;
+  background: linear-gradient(135deg, var(--max-accent), color-mix(in srgb, var(--max-accent) 55%, #7b2cff));
+  color: var(--max-on-accent);
+  border-radius: var(--max-radius);
+}
+
+.max-hero-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.max-hero-image {
+  display: block;
+  width: calc(100% + 36px);
+  max-height: 260px;
+  margin: -16px -18px 16px;
+  object-fit: cover;
+}
+
+.max-hero h1 {
+  margin: 0;
+  font-size: 1.32rem;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.max-hero p {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--max-on-accent) 88%, transparent);
+}
+
+/* Address and hours belong next to the name, not orphaned at the bottom of the page. */
+.max-hero-meta {
+  margin-top: 10px !important;
+  font-size: 0.8rem !important;
+  color: color-mix(in srgb, var(--max-on-accent) 72%, transparent) !important;
+}
+
+.max-hero-kicker {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--max-on-accent) 72%, transparent);
+}
+
+.max-about {
+  margin: 12px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--max-radius);
+  background: var(--max-sheet);
+  border: 1px solid var(--max-line);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.max-section-title {
+  margin: 24px 0 10px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--max-muted);
+}
+
+.max-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.max-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* 14px vertical keeps every row above the 44px minimum tap target on a phone. */
+  padding: 14px 16px;
+  background: var(--max-sheet);
+  border: 1.5px solid var(--max-line);
+  border-radius: var(--max-radius);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.max-option:hover {
+  border-color: color-mix(in srgb, var(--max-accent) 40%, var(--max-line));
+}
+
+.max-option[aria-pressed="true"] {
+  border-color: var(--max-accent);
+  background: color-mix(in srgb, var(--max-accent) 8%, var(--max-sheet));
+}
+
+/* The check circle carries the selected state; a border change alone is easy to miss
+   on a phone held at arm's length. */
+.max-radio {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--max-line);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--max-on-accent);
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.max-option[aria-pressed="true"] .max-radio {
+  background: var(--max-accent);
+  border-color: var(--max-accent);
+}
+
+.max-product-row {
+  min-width: 0;
+}
+
+.max-quantity {
+  display: grid;
+  grid-template-columns: 40px minmax(34px, auto) 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 7px 6px 0;
+  padding: 4px;
+  border: 1px solid var(--max-line);
+  border-radius: 999px;
+  background: var(--max-sheet);
+  color: var(--max-ink);
+  box-shadow: 0 5px 18px color-mix(in srgb, var(--max-ink) 7%, transparent);
+}
+
+.max-quantity button {
+  width: 40px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--max-accent) 12%, var(--max-sheet));
+  color: var(--max-accent-ink);
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.max-quantity button:disabled {
+  opacity: 0.45;
+}
+
+.max-quantity > span {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.max-cart {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid var(--max-line);
+  border-radius: var(--max-radius);
+  background: var(--max-sheet);
+}
+
+.max-cart-head,
+.max-cart-total,
+.max-cart li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.max-cart-head .max-section-title {
+  margin: 0;
+}
+
+.max-cart-head > span {
+  color: var(--max-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.max-cart ul {
+  display: grid;
+  gap: 9px;
+  margin: 15px 0 0;
+  padding: 15px 0 0;
+  border-top: 1px solid var(--max-line);
+  list-style: none;
+}
+
+.max-cart li {
+  font-size: 0.88rem;
+}
+
+.max-cart li span:first-child {
+  min-width: 0;
+  font-weight: 650;
+}
+
+.max-cart li span:last-child {
+  flex: 0 0 auto;
+  color: var(--max-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.max-cart-total {
+  margin-top: 15px;
+  padding-top: 13px;
+  border-top: 1px solid var(--max-line);
+}
+
+.max-cart-total strong {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.max-option-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.max-option:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 2px;
+}
+
+/* The label column is spans inside a span, so each part has to be told to stack -
+   otherwise the title and its note run together on one line. */
+.max-option-label {
+  display: block;
+}
+
+.max-option-title {
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 550;
+  line-height: 1.3;
+}
+
+.max-option-note {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: var(--max-muted);
+}
+
+.max-option-price {
+  flex-shrink: 0;
+  font-size: 0.98rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.max-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.max-chip {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--max-line);
+  background: var(--max-sheet);
+  font: inherit;
+  font-size: 0.9rem;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.max-chip[aria-pressed="true"] {
+  border-color: var(--max-accent);
+  background: color-mix(in srgb, var(--max-accent) 10%, var(--max-sheet));
+  font-weight: 600;
+}
+
+.max-chip:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 2px;
+}
+
+.max-form {
+  padding: 14px 16px;
+}
+
+.max-field {
+  display: block;
+  margin-top: 14px;
+}
+
+.max-field-label,
+.max-field > span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  color: var(--max-muted);
+}
+
+.max-hint {
+  margin: 7px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--max-muted);
+}
+
+.max-hint-ok {
+  color: #1f8a55;
+}
+
+/* A text button, so "type it myself" stays available without competing with the
+   one-tap path above it. */
+.max-linklike {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--max-muted);
+  text-align: center;
+  cursor: pointer;
+}
+
+.max-linklike:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.max-input,
+.max-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--max-line);
+  background: var(--max-sheet);
+  color: inherit;
+  font: inherit;
+  font-size: 1rem; /* 16px: anything smaller makes iOS zoom the webview on focus. */
+}
+
+.max-textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.max-input:focus,
+.max-textarea:focus {
+  outline: none;
+  border-color: var(--max-accent);
+}
+
+.max-button {
+  width: 100%;
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--max-accent);
+  color: var(--max-on-accent);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+/* Muted colours rather than opacity: the submit bar is sticky, and a translucent button
+   lets the list scroll through it. */
+.max-button:disabled {
+  background: color-mix(in srgb, var(--max-accent) 26%, var(--max-bg));
+  color: var(--max-muted);
+  cursor: default;
+}
+
+.max-button-secondary:disabled {
+  background: transparent;
+  color: color-mix(in srgb, var(--max-accent) 45%, transparent);
+}
+
+.max-button-secondary {
+  background: transparent;
+  color: var(--max-accent);
+  border: 1.5px solid color-mix(in srgb, var(--max-accent) 40%, var(--max-line));
+}
+
+.max-button:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 2px;
+}
+
+/* The submit bar sticks to the bottom so the primary action stays reachable with a thumb
+   however long the service list gets. */
+.max-submit-bar {
+  position: sticky;
+  margin-top: auto;
+  bottom: 0;
+  padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, var(--max-bg) 28%);
+}
+
+.max-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  padding: 9px 14px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--max-accent) 9%, var(--max-sheet));
+  border: 1px solid color-mix(in srgb, var(--max-accent) 22%, transparent);
+}
+
+.max-summary-text {
+  min-width: 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: var(--max-ink);
+}
+
+.max-summary-price {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--max-ink);
+}
+
+.max-submit-hint {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--max-muted);
+}
+
+.max-button-quiet {
+  background: color-mix(in srgb, var(--max-accent) 12%, var(--max-sheet));
+  color: var(--max-accent);
+  min-height: 46px;
+  font-size: 0.95rem;
+}
+
+.max-note {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--max-muted);
+}
+
+.max-error {
+  padding: 14px 16px;
+  border-radius: var(--max-radius);
+  border: 1.5px solid rgba(214, 69, 69, 0.35);
+  background: rgba(214, 69, 69, 0.08);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.max-success {
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.max-success-mark {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--max-accent) 14%, transparent);
+  color: var(--max-accent);
+  font-size: 1.6rem;
+}
+
+.max-skeleton {
+  border-radius: var(--max-radius);
+  background: linear-gradient(90deg, var(--max-line), color-mix(in srgb, var(--max-line) 40%, transparent), var(--max-line));
+  background-size: 200% 100%;
+  animation: max-shimmer 1.3s linear infinite;
+}
+
+@keyframes max-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .max-skeleton {
+    animation: none;
+  }
+}
+
+.max-lead {
+  padding: 14px 16px;
+}
+
+.max-lead-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Flex items default to min-width:auto and refuse to shrink below their text, which
+   pushes the badge off a 390px screen. */
+.max-lead-head > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.max-badge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.max-badge-new {
+  background: color-mix(in srgb, var(--max-accent) 14%, transparent);
+  color: var(--max-accent);
+}
+
+.max-badge-confirmed {
+  background: rgba(31, 138, 85, 0.14);
+  color: #1f8a55;
+}
+
+.max-badge-declined {
+  background: rgba(16, 20, 28, 0.08);
+  color: var(--max-muted);
+}
+
+.max-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.max-row .max-button {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  min-height: 42px;
+  font-size: 0.92rem;
+}
+
+.max-link-box {
+  display: block;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--max-accent) 6%, transparent);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  color: var(--max-muted);
+}
+
+/* --- owner: making a storefront --------------------------------------------------------
+   The owner side is now where storefronts are made, so the first screen is a composer,
+   not a list. Motion stays on transform only - see the progress bar. */
+
+.max-intro {
+  margin: 8px 0 16px;
+}
+
+.max-intro h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.max-intro p {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--max-muted);
+}
+
+.max-optional {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--max-muted);
+}
+
+.max-attach-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.max-attach-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--max-accent) 6%, var(--max-sheet));
+  font-size: 0.88rem;
+}
+
+.max-attach-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.max-attach-remove {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--max-muted);
+  cursor: pointer;
+}
+
+.max-welcome {
+  padding: 22px 20px 20px;
+}
+
+.max-welcome h1 {
+  font-size: 1.5rem;
+  line-height: 1.15;
+}
+
+.max-welcome p {
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+.max-composer {
+  padding: 16px;
+}
+
+.max-composer-input {
+  min-height: 132px;
+  line-height: 1.45;
+}
+
+.max-examples {
+  margin-top: 10px;
+}
+
+.max-examples .max-chip {
+  padding: 7px 12px;
+  font-size: 0.84rem;
+}
+
+.max-progress {
+  padding: 18px 16px;
+  text-align: center;
+}
+
+.max-progress-track {
+  position: relative;
+  height: 4px;
+  margin: 2px auto 16px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--max-accent) 14%, transparent);
+}
+
+/* An indeterminate bar: one element sliding across, moved with transform only so the
+   compositor does the work while the model thinks. */
+.max-progress-track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--max-accent);
+  animation: max-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes max-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .max-progress-track i {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
+}
+
+.max-progress-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.max-progress-brief {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--max-bg);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--max-muted);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.max-steps {
+  list-style: none;
+  counter-reset: max-step;
+  margin: 18px 0 24px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.max-steps li {
+  counter-increment: max-step;
+  position: relative;
+  padding-left: 40px;
+  min-height: 28px;
+}
+
+.max-steps li::before {
+  content: counter(max-step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--max-accent) 12%, var(--max-sheet));
+  color: var(--max-accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.max-steps b {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.max-steps span {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.84rem;
+  color: var(--max-muted);
+}
+
+/* --- owner: the list of storefronts ------------------------------------------------- */
+
+.max-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 10px;
+}
+
+.max-toolbar-add {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--max-accent) 12%, var(--max-sheet));
+  color: var(--max-accent);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.max-toolbar-add:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 2px;
+}
+
+.max-card {
+  padding: 14px 16px 10px;
+}
+
+/* The storefront that was just made gets a ring and a line saying it is live - the one
+   moment the owner should not have to look for. */
+.max-card-fresh {
+  border-color: color-mix(in srgb, var(--max-accent) 55%, var(--max-line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--max-accent) 14%, transparent);
+}
+
+.max-card-flag {
+  margin: 0 0 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #1f8a55;
+}
+
+.max-row .max-button-compact,
+.max-button-compact {
+  min-height: 42px;
+  font-size: 0.92rem;
+}
+
+/* Two by two: four actions in a row do not fit a phone once one of them reads
+   "Опубликовать", and a lone button wrapped onto its own line looks like an accident. */
+.max-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 4px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--max-line);
+}
+
+.max-card-actions button {
+  min-height: 40px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--max-accent);
+  cursor: pointer;
+}
+
+.max-card-actions button:disabled {
+  color: var(--max-muted);
+  cursor: default;
+}
+
+.max-card-actions button:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 1px;
+}
+
+.max-card-actions .max-danger {
+  color: #c43d3d;
+}
+
+.max-edit {
+  margin: 4px 0 6px;
+}
+
+.max-catalog {
+  margin: 12px 0 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--max-line);
+}
+
+.max-catalog-row {
+  display: grid;
+  grid-template-columns: 1fr 72px 36px;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.max-catalog-row .max-input {
+  min-height: 42px;
+  padding: 8px 10px;
+  font-size: 0.92rem;
+}
+
+.max-catalog-price {
+  text-align: right;
+}
+
+.max-catalog-remove {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--max-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- owner: previewing a storefront as a customer ---------------------------------- */
+
+.max-preview-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--max-bg) 92%, transparent);
+  border-bottom: 1px solid var(--max-line);
+  font-size: 0.8rem;
+  color: var(--max-muted);
+}
+
+.max-preview-back {
+  padding: 4px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--max-accent);
+  cursor: pointer;
+}
+
+.max-option-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.max-duration {
+  font-size: 0.75rem;
+  color: var(--max-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.max-history-row {
+  padding: 12px 14px;
+}
+
+.max-cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.max-cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0 6px;
+  border: 1.5px solid var(--max-line);
+  border-radius: 12px;
+  background: var(--max-sheet);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.max-cal-day[aria-pressed="true"] {
+  border-color: var(--max-accent);
+  background: color-mix(in srgb, var(--max-accent) 10%, var(--max-sheet));
+}
+
+.max-cal-day:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 2px;
+}
+
+.max-cal-weekday {
+  font-size: 0.68rem;
+  text-transform: lowercase;
+  color: var(--max-muted);
+}
+
+.max-cal-num {
+  font-size: 0.95rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.max-cal-count {
+  min-height: 14px;
+  font-size: 0.68rem;
+  font-weight: 650;
+  color: var(--max-accent);
+}
+
+.max-cal-count-empty {
+  visibility: hidden;
+}
+
+/* --- storefront design system --------------------------------------------------------
+   Colours arrive as variables resolved in lib/max/theme.ts (that is where contrast is
+   checked against the real palette). Everything below is composition: independent
+   primitives - typeface, hero, tone, texture, card, navigation, geometry, density - that
+   the generator combines per brief. None of them may assume a particular palette.
+
+   Mobile only: MAX opens mini apps in a phone-width webview, so every rule is written for
+   320-430px first and merely tolerates wider. */
+
+.max-shell {
+  --max-display: var(--font-inter), system-ui, sans-serif;
+  --max-display-weight: 750;
+  --max-display-tracking: -0.035em;
+  --max-display-case: none;
+  --max-display-scale: 1;
+  /* Average glyph width of the face, in em - what caps a headline to its longest word. */
+  --max-display-width: 0.6;
+  --max-radius: 16px;
+  --max-gutter: 16px;
+  padding-inline: var(--max-gutter);
+}
+
+.max-shell[data-body="manrope"] {
+  font-family: var(--max-font-manrope), system-ui, -apple-system, sans-serif;
+}
+
+:is(.max-shell, .max-cover)[data-font="manrope"] { --max-display-width: 0.64; --max-display: var(--max-font-manrope), sans-serif; --max-display-weight: 800; }
+:is(.max-shell, .max-cover)[data-font="rubik"] { --max-display-width: 0.62; --max-display: var(--max-font-rubik), sans-serif; --max-display-weight: 700; --max-display-tracking: -0.025em; }
+:is(.max-shell, .max-cover)[data-font="unbounded"] { --max-display-width: 0.8; --max-display: var(--max-font-unbounded), sans-serif; --max-display-weight: 700; --max-display-tracking: -0.03em; --max-display-scale: 0.86; }
+:is(.max-shell, .max-cover)[data-font="oswald"] { --max-display-width: 0.46; --max-display: var(--max-font-oswald), sans-serif; --max-display-weight: 600; --max-display-tracking: 0; --max-display-case: uppercase; --max-display-scale: 1.12; }
+:is(.max-shell, .max-cover)[data-font="playfair"] { --max-display-width: 0.6; --max-display: var(--max-font-playfair), Georgia, serif; --max-display-weight: 600; --max-display-tracking: -0.02em; }
+:is(.max-shell, .max-cover)[data-font="cormorant"] { --max-display-width: 0.5; --max-display: var(--max-font-cormorant), Georgia, serif; --max-display-weight: 600; --max-display-tracking: -0.01em; --max-display-scale: 1.18; }
+:is(.max-shell, .max-cover)[data-font="lora"] { --max-display-width: 0.6; --max-display: var(--max-font-lora), Georgia, serif; --max-display-weight: 600; --max-display-tracking: -0.02em; }
+:is(.max-shell, .max-cover)[data-font="comfortaa"] { --max-display-width: 0.66; --max-display: var(--max-font-comfortaa), sans-serif; --max-display-weight: 700; --max-display-tracking: -0.02em; --max-display-scale: 0.94; }
+
+.max-shell[data-radius="sharp"] { --max-radius: 3px; }
+.max-shell[data-radius="soft"] { --max-radius: 16px; }
+.max-shell[data-radius="round"] { --max-radius: 26px; }
+
+/* --- hero ------------------------------------------------------------------------------ */
+
+.max-shell .max-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 20px 20px;
+  border-radius: var(--max-radius);
+  background: var(--max-hero-bg);
+  color: var(--max-hero-ink);
+}
+
+.max-shell[data-tone="plain"] .max-hero {
+  border: 1px solid var(--max-line);
+}
+
+.max-shell .max-hero h1 {
+  margin: 0;
+  font-family: var(--max-display);
+  font-weight: var(--max-display-weight);
+  font-size: min(calc(clamp(1.95rem, 9.5vw, 2.7rem) * var(--max-display-scale)), var(--max-title-fit));
+  line-height: 1.02;
+  letter-spacing: var(--max-display-tracking);
+  text-transform: var(--max-display-case);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  hyphens: manual;
+  /* The hero's text box is the viewport minus gutters and hero padding (~80px). */
+  --max-title-fit: calc((min(100vw, 560px) - 84px) / (var(--max-title-chars, 8) * var(--max-display-width)));
+}
+
+.max-shell .max-hero p,
+.max-shell .max-hero-kicker,
+.max-shell .max-hero-meta {
+  color: color-mix(in srgb, var(--max-hero-ink) 76%, transparent) !important;
+}
+
+.max-shell .max-hero-kicker {
+  margin: 0 0 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.max-shell .max-hero-tagline {
+  margin: 10px 0 0;
+  max-width: 34ch;
+  font-size: 1rem;
+  line-height: 1.42;
+}
+
+.max-shell .max-hero-meta {
+  margin-top: 14px !important;
+  font-size: 0.8rem !important;
+}
+
+.max-shell .max-hero-media {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  width: calc(100% + 40px);
+  height: 224px;
+  margin: -22px -20px 20px;
+}
+
+.max-shell .max-hero-media .max-hero-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  object-fit: cover;
+  opacity: 1;
+}
+
+/* Facts in the hero: large numbers read at a glance, which a paragraph never does. */
+.max-highlights {
+  display: grid;
+  grid-template-columns: repeat(var(--count, 3), minmax(0, 1fr));
+  gap: 10px;
+  margin: 20px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--max-hero-ink) 22%, transparent);
+}
+
+.max-highlights[data-count="1"] { --count: 1; }
+.max-highlights[data-count="2"] { --count: 2; }
+
+.max-highlight dt {
+  font-family: var(--max-display);
+  font-weight: var(--max-display-weight);
+  font-size: calc(1.3rem * var(--max-display-scale));
+  line-height: 1.05;
+  letter-spacing: var(--max-display-tracking);
+  overflow-wrap: anywhere;
+}
+
+.max-highlight dd {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--max-hero-ink) 70%, transparent);
+}
+
+/* Full bleed: the brand owns the first screen, edge to edge. */
+.max-shell[data-hero="fullbleed"] .max-hero {
+  justify-content: flex-end;
+  min-height: min(48svh, 400px);
+  margin: -16px calc(-1 * var(--max-gutter)) 0;
+  padding: 30px var(--max-gutter) 24px;
+  border-radius: 0 0 calc(var(--max-radius) + 10px) calc(var(--max-radius) + 10px);
+  border: 0;
+}
+
+.max-shell[data-hero="fullbleed"] .max-hero[data-has-image="yes"] {
+  min-height: min(62svh, 540px);
+}
+
+.max-shell[data-hero="fullbleed"] .max-hero h1 {
+  font-size: min(calc(clamp(2.3rem, 12vw, 3.5rem) * var(--max-display-scale)), var(--max-title-fit));
+  line-height: 0.96;
+}
+
+/* Photo behind text: the text is always white on a scrim, whatever the palette says. */
+.max-shell[data-hero="fullbleed"] .max-hero[data-has-image="yes"],
+.max-shell[data-hero="split"][data-layout="poster"] .max-hero[data-has-image="yes"] {
+  --max-hero-ink: #ffffff;
+}
+
+.max-shell[data-hero="fullbleed"] .max-hero[data-has-image="yes"] .max-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.max-shell[data-hero="fullbleed"] .max-hero[data-has-image="yes"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 18%, rgba(0, 0, 0, 0.78) 100%);
+}
+
+/* Editorial: no box at all - a magazine opening with a framed photo under the headline. */
+.max-shell[data-hero="editorial"] .max-hero {
+  padding: 18px 2px 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--max-ink);
+  --max-hero-ink: var(--max-ink);
+  overflow: visible;
+}
+
+.max-shell[data-hero="editorial"] .max-hero h1 {
+  font-size: min(calc(clamp(2.4rem, 12.5vw, 3.7rem) * var(--max-display-scale)), var(--max-title-fit));
+  line-height: 0.95;
+}
+
+.max-shell[data-hero="editorial"] .max-hero-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--max-accent-ink) !important;
+}
+
+.max-shell[data-hero="editorial"] .max-hero-kicker::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+.max-shell[data-hero="editorial"] .max-hero-media {
+  order: 2;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  margin: 20px 0 0;
+  border-radius: var(--max-radius);
+}
+
+/* Typographic: the name is the picture. */
+.max-shell[data-hero="typographic"] .max-hero {
+  justify-content: flex-end;
+  min-height: min(52svh, 440px);
+  margin-inline: calc(-1 * var(--max-gutter) + 6px);
+  padding: 26px 20px 22px;
+}
+
+.max-shell[data-hero="typographic"] .max-hero h1 {
+  max-width: 11ch;
+  font-size: min(calc(clamp(2.7rem, 15vw, 4.8rem) * var(--max-display-scale)), var(--max-title-fit));
+  line-height: 0.9;
+}
+
+.max-shell[data-hero="typographic"] .max-hero-media {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 0;
+  width: 38%;
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--max-hero-ink) 16%, transparent);
+}
+
+/* Collage: copy first, then a mosaic of real photos from the catalogue. */
+.max-shell[data-hero="collage"] .max-hero-media {
+  order: 2;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+  height: 250px;
+  margin: 20px 0 0;
+  background: transparent;
+}
+
+.max-shell[data-hero="collage"] .max-hero-image {
+  border-radius: calc(var(--max-radius) * 0.6);
+}
+
+.max-shell[data-hero="collage"] .max-hero-image:first-child { grid-row: 1 / 3; }
+.max-shell[data-hero="collage"] .max-hero-media[data-count="1"] .max-hero-image { grid-column: 1 / 3; }
+.max-shell[data-hero="collage"] .max-hero-media[data-count="2"] .max-hero-image:nth-child(2) { grid-row: 1 / 3; }
+
+/* Texture for heroes without a photo. Pure CSS; ink-coloured so it works on any tone. */
+.max-shell .max-hero[data-has-image="no"]::before,
+.max-shell[data-hero="collage"] .max-hero::before,
+.max-shell[data-hero="editorial"] .max-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  --max-texture: color-mix(in srgb, var(--max-hero-ink) 20%, transparent);
+}
+
+.max-shell[data-hero="editorial"] .max-hero::before { display: none; }
+
+.max-shell[data-pattern="dots"] .max-hero::before {
+  background-image: radial-gradient(var(--max-texture) 1.3px, transparent 1.7px);
+  background-size: 15px 15px;
+  mask-image: linear-gradient(205deg, #000 5%, transparent 62%);
+}
+
+.max-shell[data-pattern="grid"] .max-hero::before {
+  background-image:
+    linear-gradient(var(--max-texture) 1px, transparent 1px),
+    linear-gradient(90deg, var(--max-texture) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(120% 90% at 100% 0%, #000 10%, transparent 70%);
+}
+
+.max-shell[data-pattern="rings"] .max-hero::before {
+  background: repeating-radial-gradient(
+    circle at 105% -5%,
+    transparent 0 22px,
+    var(--max-texture) 22px 23.5px
+  );
+  mask-image: radial-gradient(90% 80% at 100% 0%, #000 20%, transparent 75%);
+}
+
+.max-shell[data-pattern="stripes"] .max-hero::before {
+  background: repeating-linear-gradient(-55deg, var(--max-texture) 0 2px, transparent 2px 14px);
+  mask-image: linear-gradient(200deg, #000 0%, transparent 55%);
+}
+
+.max-shell[data-pattern="glow"] .max-hero::before {
+  background:
+    radial-gradient(60% 55% at 92% 8%, color-mix(in srgb, var(--max-accent-2) 85%, transparent), transparent 70%),
+    radial-gradient(55% 50% at 0% 100%, color-mix(in srgb, var(--max-hero-ink) 16%, transparent), transparent 70%);
+  filter: blur(6px);
+}
+
+.max-shell[data-pattern="grain"] .max-hero::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.7;
+}
+
+/* --- ticker ------------------------------------------------------------------------------ */
+
+.max-marquee {
+  overflow: hidden;
+  margin: 14px calc(-1 * var(--max-gutter)) 0;
+  padding: 11px 0;
+  background: var(--max-accent);
+  color: var(--max-on-accent);
+  font-family: var(--max-display);
+  font-weight: var(--max-display-weight);
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.max-shell[data-hero="fullbleed"] .max-marquee {
+  margin-top: 0;
+}
+
+.max-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: max-marquee 26s linear infinite;
+}
+
+.max-marquee-run {
+  display: flex;
+}
+
+.max-marquee-word::after {
+  content: "✦";
+  margin: 0 16px;
+  opacity: 0.65;
+}
+
+@keyframes max-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .max-marquee-track {
+    animation: none;
+  }
+}
+
+/* --- story ------------------------------------------------------------------------------- */
+
+.max-shell .max-about {
+  margin-top: 14px;
+  padding: 16px 18px;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.max-shell[data-hero="editorial"] .max-about,
+.max-shell[data-hero="typographic"] .max-about,
+.max-shell[data-hero="fullbleed"] .max-about {
+  padding: 18px 2px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 1.06rem;
+}
+
+.max-shell[data-hero="editorial"] .max-about {
+  border-top: 1px solid var(--max-line);
+  margin-top: 20px;
+}
+
+/* --- catalogue ----------------------------------------------------------------------------- */
+
+.max-shell .max-catalog-title {
+  margin: 30px 0 14px;
+  font-family: var(--max-display);
+  font-weight: var(--max-display-weight);
+  font-size: calc(1.5rem * var(--max-display-scale));
+  line-height: 1.1;
+  letter-spacing: var(--max-display-tracking);
+  text-transform: var(--max-display-case);
+  color: var(--max-ink);
+}
+
+/* Categories stay on screen while the customer scrolls a long menu. */
+.max-shell .max-category-nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  margin: 0 calc(-1 * var(--max-gutter)) 14px;
+  padding: 8px var(--max-gutter);
+  background: color-mix(in srgb, var(--max-bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+
+.max-shell .max-category {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid var(--max-line);
+  border-radius: 999px;
+  background: var(--max-sheet);
+  color: var(--max-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.max-shell .max-category[aria-pressed="true"] {
+  border-color: var(--max-accent);
+  background: var(--max-accent);
+  color: var(--max-on-accent);
+  font-weight: 700;
+}
+
+.max-shell[data-nav="tabs"] .max-category-nav {
+  gap: 22px;
+  padding-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--max-line);
+}
+
+.max-shell[data-nav="tabs"] .max-category {
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 2.5px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--max-muted);
+}
+
+.max-shell[data-nav="tabs"] .max-category[aria-pressed="true"] {
+  border-bottom-color: var(--max-accent-ink);
+  background: transparent;
+  color: var(--max-ink);
+}
+
+/* Rail: a segmented control, one pill-shaped track. */
+.max-shell[data-nav="rail"] .max-category-nav {
+  gap: 0;
+}
+
+.max-shell[data-nav="rail"] .max-category {
+  border-radius: 0;
+  border-width: 1px 0 1px 1px;
+}
+
+.max-shell[data-nav="rail"] .max-category:first-child {
+  border-radius: var(--max-radius) 0 0 var(--max-radius);
+}
+
+.max-shell[data-nav="rail"] .max-category:last-child {
+  border-right-width: 1px;
+  border-radius: 0 var(--max-radius) var(--max-radius) 0;
+}
+
+.max-shell .max-option {
+  border-radius: var(--max-radius);
+}
+
+.max-shell .max-option-price {
+  font-weight: 750;
+}
+
+.max-shell .max-option[aria-pressed="true"] .max-option-price {
+  color: var(--max-accent-ink);
+}
+
+.max-option-index {
+  display: none;
+}
+
+.max-inline-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--max-accent) 16%, transparent);
+  color: var(--max-accent-ink);
+  font-size: 0.64rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+.max-shell .max-option-media {
+  position: relative;
+  flex: 0 0 auto;
+  display: block;
+  overflow: hidden;
+  width: 84px;
+  height: 84px;
+  border-radius: calc(var(--max-radius) * 0.7);
+  background: color-mix(in srgb, var(--max-accent) 10%, var(--max-bg));
+}
+
+.max-option-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The stand-in for a missing photo: the storefront's own gradient and an initial. */
+.max-shell .max-option-tile {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(80% 70% at 85% 10%, color-mix(in srgb, var(--max-on-accent) 22%, transparent), transparent 60%),
+    linear-gradient(145deg, var(--max-accent), var(--max-accent-2));
+  color: var(--max-on-accent);
+}
+
+.max-option-initial {
+  font-family: var(--max-display);
+  font-weight: var(--max-display-weight);
+  font-size: 2.2rem;
+  line-height: 1;
+  text-transform: uppercase;
+  opacity: 0.92;
+}
+
+.max-product-badge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--max-accent);
+  color: var(--max-on-accent);
+  font-size: 0.62rem;
+  font-weight: 750;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.max-option-tile .max-product-badge {
+  background: var(--max-sheet);
+  color: var(--max-ink);
+}
+
+/* Horizontal: photo (or tile) on the left, copy on the right. */
+.max-shell[data-card="horizontal"] .max-option {
+  padding: 8px 14px 8px 8px;
+}
+
+.max-shell[data-card="horizontal"] .max-option-media {
+  width: 92px;
+  height: 92px;
+}
+
+/* Image-top: a two-column product grid. */
+.max-shell[data-card="image-top"] .max-list,
+.max-shell[data-card="overlay"] .max-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.max-shell[data-card="image-top"] .max-option {
+  position: relative;
+  height: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 0 0 14px;
+  overflow: hidden;
+}
+
+.max-shell[data-card="image-top"] .max-option-media {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 0.82;
+  border-radius: 0;
+}
+
+.max-shell[data-card="image-top"] .max-option-label,
+.max-shell[data-card="image-top"] .max-option-meta {
+  width: 100%;
+  padding-inline: 12px;
+  align-items: flex-start;
+}
+
+.max-shell[data-card="image-top"] .max-option-meta {
+  margin-top: auto;
+}
+
+.max-shell[data-card="image-top"] .max-radio,
+.max-shell[data-card="overlay"] .max-radio {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  background: color-mix(in srgb, var(--max-sheet) 85%, transparent);
+  border-color: transparent;
+}
+
+.max-shell[data-card="image-top"] .max-option[aria-pressed="true"] .max-radio,
+.max-shell[data-card="overlay"] .max-option[aria-pressed="true"] .max-radio {
+  background: var(--max-accent);
+}
+
+/* A quantity stepper is a sibling of the product button. Let it participate in the grid
+   row height: `height: 100%` on the old single-select card made the next row cover it. */
+.max-shell[data-card="image-top"] .max-product-row,
+.max-shell[data-card="overlay"] .max-product-row {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.max-shell[data-card="image-top"] .max-product-row > .max-option,
+.max-shell[data-card="overlay"] .max-product-row > .max-option {
+  height: auto;
+  flex: 1 1 auto;
+}
+
+/* Overlay: tall tiles with the copy set on the picture. */
+.max-shell[data-card="overlay"] .max-option {
+  position: relative;
+  min-height: 214px;
+  height: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 14px;
+  overflow: hidden;
+  border: 0;
+  color: #ffffff;
+}
+
+.max-shell[data-card="overlay"] .max-option[data-photo="no"] {
+  color: var(--max-on-accent);
+}
+
+.max-shell[data-card="overlay"] .max-option-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.max-shell[data-card="overlay"] .max-option-tile .max-option-initial {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  font-size: 3.4rem;
+  opacity: 0.34;
+}
+
+.max-shell[data-card="overlay"] .max-option[data-photo="yes"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.82));
+}
+
+.max-shell[data-card="overlay"] .max-option-label,
+.max-shell[data-card="overlay"] .max-option-meta {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  align-items: flex-start;
+}
+
+.max-shell[data-card="overlay"] .max-option-note,
+.max-shell[data-card="overlay"] .max-duration {
+  color: color-mix(in srgb, currentColor 78%, transparent);
+}
+
+.max-shell[data-card="overlay"] .max-option[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--max-accent), 0 0 0 5px var(--max-bg);
+}
+
+.max-shell[data-card="overlay"] .max-option[aria-pressed="true"] .max-option-price {
+  color: inherit;
+}
+
+/* Numbered: an open list with large indices - reads like a considered programme. */
+.max-shell[data-card="numbered"] .max-list,
+.max-shell[data-card="menu"] .max-list {
+  gap: 0;
+  border-top: 1px solid var(--max-line);
+}
+
+.max-shell[data-card="numbered"] .max-option,
+.max-shell[data-card="menu"] .max-option {
+  padding: 16px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--max-line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.max-shell[data-card="numbered"] .max-option[aria-pressed="true"],
+.max-shell[data-card="menu"] .max-option[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--max-accent) 10%, transparent);
+  box-shadow: inset 3px 0 0 var(--max-accent);
+}
+
+.max-shell[data-card="numbered"] .max-option-index {
+  display: block;
+  flex: 0 0 auto;
+  min-width: 2.1em;
+  font-family: var(--max-display);
+  font-weight: var(--max-display-weight);
+  font-size: calc(1.5rem * var(--max-display-scale));
+  line-height: 1;
+  color: var(--max-accent-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.max-shell[data-card="numbered"] .max-radio,
+.max-shell[data-card="menu"] .max-radio {
+  display: none;
+}
+
+.max-shell[data-card="numbered"] .max-option[aria-pressed="true"] .max-radio,
+.max-shell[data-card="menu"] .max-option[aria-pressed="true"] .max-radio {
+  display: grid;
+  order: 9;
+}
+
+.max-shell[data-card="numbered"] .max-option-title {
+  font-size: 1.04rem;
+  font-weight: 650;
+}
+
+/* Menu: title, dotted leader, price - the way a printed menu sets a price list. */
+.max-shell[data-card="menu"] .max-option {
+  align-items: baseline;
+  flex-wrap: nowrap;
+}
+
+.max-shell[data-card="menu"] .max-option-label {
+  flex: 0 1 auto;
+}
+
+.max-shell[data-card="menu"] .max-option-meta {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 5.5em;
+}
+
+.max-shell[data-card="menu"] .max-option-meta::before {
+  content: "";
+  flex: 1;
+  min-width: 14px;
+  border-bottom: 2px dotted var(--max-line);
+  transform: translateY(-4px);
+}
+
+.max-shell[data-card="menu"] .max-option-title {
+  font-family: var(--max-display);
+  font-weight: calc(var(--max-display-weight) - 100);
+  font-size: calc(1.06rem * var(--max-display-scale));
+}
+
+/* --- density ------------------------------------------------------------------------------- */
+
+.max-shell[data-density="airy"] .max-list { gap: 16px; }
+.max-shell[data-density="airy"] .max-catalog-title { margin-top: 38px; }
+.max-shell[data-density="compact"] .max-list { gap: 6px; }
+.max-shell[data-density="compact"] .max-option { padding-block: 10px; }
+.max-shell[data-density="airy"][data-card="numbered"] .max-list,
+.max-shell[data-density="airy"][data-card="menu"] .max-list,
+.max-shell[data-density="compact"][data-card="numbered"] .max-list,
+.max-shell[data-density="compact"][data-card="menu"] .max-list { gap: 0; }
+
+/* --- action bar ------------------------------------------------------------------------------ */
+
+.max-shell .max-submit-bar {
+  /* Above the sticky category bar and the overlay cards, whose z-indexed copy would
+     otherwise paint over the order button while the list scrolls under it. */
+  z-index: 10;
+  margin-inline: calc(-1 * var(--max-gutter));
+  padding: 12px var(--max-gutter) max(12px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--max-bg) 94%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 -1px 0 var(--max-line);
+}
+
+.max-shell .max-button {
+  min-height: 54px;
+  border-radius: min(var(--max-radius), 18px);
+  font-weight: 750;
+  font-size: 1.02rem;
+}
+
+.max-shell .max-chip {
+  border-radius: min(var(--max-radius), 999px);
+}
+
+.max-shell .max-success h1 {
+  font-family: var(--max-display);
+  font-weight: var(--max-display-weight) !important;
+  letter-spacing: var(--max-display-tracking);
+}
+
+/* Two columns stay down to the narrowest phones MAX runs on; one column only below. */
+@media (max-width: 330px) {
+  .max-shell[data-card="image-top"] .max-list,
+  .max-shell[data-card="overlay"] .max-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- owner: switch between storefronts (Clino-style wheel) -------------------------- */
+
+.max-switcher {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 13px 12px;
+  text-align: left;
+  border: 1px solid var(--max-line);
+  border-radius: var(--max-radius);
+  background: var(--max-sheet);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.max-switcher:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 2px;
+}
+
+.max-switcher:hover {
+  background: color-mix(in srgb, var(--max-accent) 5%, var(--max-sheet));
+}
+
+.max-switcher-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--max-accent) 10%, var(--max-bg));
+  color: var(--max-accent);
+}
+
+.max-switcher-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.max-switcher-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--max-muted);
+}
+
+.max-switcher-title {
+  display: block;
+  margin: 3px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.max-switcher-note {
+  display: block;
+  margin: 3px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  color: var(--max-muted);
+}
+
+.max-switcher-chevron {
+  flex-shrink: 0;
+  color: var(--max-muted);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.max-picker-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px 12px max(12px, env(safe-area-inset-bottom));
+  background: rgba(16, 20, 28, 0.42);
+}
+
+.max-picker-scrim[hidden] {
+  display: none !important;
+}
+
+.max-picker-sheet {
+  width: 100%;
+  max-width: 420px;
+  padding: 18px 16px 16px;
+  border-radius: 22px;
+  background: var(--max-sheet);
+  box-shadow: 0 18px 50px rgba(16, 20, 28, 0.22);
+}
+
+@media (min-width: 480px) {
+  .max-picker-scrim {
+    align-items: center;
+  }
+}
+
+.max-picker-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.max-picker-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.max-picker-close {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--max-muted);
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.max-picker-close:focus-visible {
+  outline: 2px solid var(--max-accent);
+  outline-offset: 1px;
+}
+
+.max-picker-caption {
+  display: block;
+  width: 100%;
+  margin: 16px 0 8px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--max-muted);
+}
+
+.max-wheel-wrap {
+  position: relative;
+  margin: 0 auto;
+  max-width: 19rem;
+}
+
+.max-wheel {
+  position: relative;
+  z-index: 1;
+  height: 224px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.max-wheel::-webkit-scrollbar {
+  display: none;
+}
+
+.max-wheel-window {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  z-index: 0;
+  height: 64px;
+  transform: translateY(-50%);
+  border-radius: 12px;
+  border-top: 1px solid var(--max-line);
+  border-bottom: 1px solid var(--max-line);
+  background: color-mix(in srgb, var(--max-accent) 7%, var(--max-bg));
+  pointer-events: none;
+}
+
+.max-wheel-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 64px;
+  padding: 0 12px;
+  border: none;
+  background: none;
+  color: var(--max-muted);
+  font: inherit;
+  scroll-snap-align: center;
+  cursor: pointer;
+}
+
+.max-wheel-item.is-active {
+  color: var(--max-ink);
+}
+
+.max-wheel-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.05rem;
+}
+
+.max-wheel-item.is-active .max-wheel-name {
+  font-weight: 650;
+}
+
+.max-wheel-meta {
+  margin-top: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+/* Accent as text must use the contrast-checked variant (a pale gold accent is a fine button
+   and an unreadable label). */
+.max-shell .max-button-quiet,
+.max-shell .max-button-secondary {
+  color: var(--max-accent-ink);
+}
+
+.max-shell[data-card="overlay"] .max-option[aria-pressed="true"] .max-radio {
+  background: var(--max-sheet);
+  color: var(--max-accent-ink);
+}
+
+/* --- owner cabinet -----------------------------------------------------------------------
+   Calm neutral chrome, so the only loud colours on this screen are the storefront itself
+   (the cover) and whatever needs a decision (new leads). */
+
+.max-owner {
+  --max-accent: #5b4cf0;
+  --max-accent-ink: #4a3be0;
+  --max-on-accent: #ffffff;
+  --max-bg: #f3f3f8;
+  --max-sheet: #ffffff;
+  --max-ink: #16152b;
+  --max-muted: #6f6e85;
+  --max-line: rgba(22, 21, 43, 0.09);
+  --max-owner-gradient: linear-gradient(135deg, #6a4cf5 0%, #3f7cf6 100%);
+  font-family: var(--max-font-manrope), system-ui, -apple-system, sans-serif;
+  padding-top: 14px;
+}
+
+.max-owner-card {
+  padding: 18px 16px;
+  border-radius: 22px;
+  background: var(--max-sheet);
+  box-shadow: 0 1px 2px rgba(22, 21, 43, 0.04), 0 8px 24px -12px rgba(22, 21, 43, 0.12);
+}
+
+.max-owner-card + .max-owner-card {
+  margin-top: 12px;
+}
+
+.max-owner-h2 {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.max-owner-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  font-weight: 750;
+}
+
+.max-owner .max-textarea,
+.max-owner .max-input {
+  border-radius: 14px;
+  background: #f7f7fb;
+  border-color: transparent;
+}
+
+.max-owner .max-textarea:focus,
+.max-owner .max-input:focus {
+  background: #ffffff;
+  border-color: var(--max-accent);
+}
+
+.max-owner-primary,
+.max-owner-secondary,
+.max-owner-icon {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 750;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.max-owner-primary:active,
+.max-owner-secondary:active,
+.max-owner-icon:active {
+  transform: scale(0.97);
+}
+
+.max-owner-primary {
+  width: 100%;
+  background: var(--max-owner-gradient);
+  color: #ffffff;
+  box-shadow: 0 8px 20px -10px rgba(91, 76, 240, 0.8);
+}
+
+.max-owner-primary:disabled {
+  background: #dcdbeb;
+  color: #8d8ca3;
+  box-shadow: none;
+  cursor: default;
+}
+
+.max-owner-secondary {
+  background: #ecebfd;
+  color: var(--max-accent-ink);
+}
+
+.max-owner-secondary:disabled {
+  opacity: 0.5;
+}
+
+.max-owner-icon {
+  flex: 0 0 48px;
+  width: 48px;
+  padding: 0;
+  background: #ecebfd;
+  color: var(--max-accent-ink);
+}
+
+.max-owner-chip {
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: #efeff6;
+  color: var(--max-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.max-owner-chip[aria-pressed="true"] {
+  background: var(--max-ink);
+  color: #ffffff;
+}
+
+.max-owner .max-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.max-examples-label {
+  font-size: 0.8rem;
+  color: var(--max-muted);
+}
+
+.max-input-icon {
+  position: relative;
+}
+
+.max-input-icon svg {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--max-muted);
+}
+
+.max-input-icon .max-input {
+  padding-left: 40px;
+}
+
+.max-dropzone {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1.5px dashed rgba(91, 76, 240, 0.35);
+  border-radius: 16px;
+  background: rgba(91, 76, 240, 0.04);
+  font: inherit;
+  color: var(--max-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.max-dropzone-plus {
+  flex: 0 0 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--max-owner-gradient);
+  color: #ffffff;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.max-dropzone strong {
+  display: block;
+  font-size: 0.93rem;
+}
+
+.max-dropzone small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--max-muted);
+}
+
+/* First run: show what they get before asking for anything. */
+.max-welcome {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 14px;
+  padding: 122px 20px 20px;
+  border-radius: 26px;
+  background:
+    radial-gradient(70% 60% at 100% 0%, rgba(122, 92, 255, 0.55), transparent 70%),
+    radial-gradient(60% 60% at 0% 100%, rgba(63, 124, 246, 0.45), transparent 70%),
+    #141230;
+  color: #ffffff;
+}
+
+.max-welcome h1 {
+  margin: 0;
+  font-size: 1.7rem;
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.max-welcome > p:not(.max-welcome-kicker) {
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.max-welcome-kicker {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Three storefronts in three different styles - the promise, shown rather than told. */
+.max-welcome-samples {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  right: 20px;
+  height: 90px;
+}
+
+.max-sample {
+  position: absolute;
+  display: flex;
+  align-items: flex-end;
+  width: 38%;
+  height: 78px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.6);
+  line-height: 1;
+}
+
+.max-sample-a {
+  left: 0;
+  top: 8px;
+  transform: rotate(-6deg);
+  background: repeating-linear-gradient(-55deg, rgba(0, 0, 0, 0.12) 0 2px, transparent 2px 10px), #e4b343;
+  color: #111111;
+  font-family: var(--max-font-oswald), sans-serif;
+  font-weight: 600;
+  font-size: 1.3rem;
+}
+
+.max-sample-b {
+  left: 31%;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(150deg, #b4532a, #6e2a12);
+  color: #fff6ee;
+  font-family: var(--max-font-cormorant), serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.max-sample-c {
+  right: 0;
+  z-index: 2;
+  top: 10px;
+  transform: rotate(5deg);
+  background: #f5f3ec;
+  color: #16231c;
+  font-family: var(--max-font-lora), serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.max-welcome-steps {
+  display: flex;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.max-welcome-steps li {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-align: center;
+  counter-increment: step;
+}
+
+.max-welcome-steps li::before {
+  content: counter(step) ". ";
+  opacity: 0.6;
+}
+
+/* Progress while the model works: something alive, not a frozen bar. */
+.max-owner .max-progress {
+  text-align: center;
+  padding: 28px 18px;
+}
+
+.max-progress-orb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+}
+
+.max-progress-orb i {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--max-owner-gradient);
+  opacity: 0.25;
+  animation: max-orb 1.8s ease-out infinite;
+}
+
+.max-progress-orb i:nth-child(2) { animation-delay: 0.6s; }
+.max-progress-orb i:nth-child(3) { animation-delay: 1.2s; }
+
+@keyframes max-orb {
+  from { transform: scale(0.35); opacity: 0.8; }
+  to { transform: scale(1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .max-progress-orb i { animation: none; opacity: 0.4; }
+}
+
+/* The cover: the selected storefront in its own palette and typeface. */
+.max-cover {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px 18px 20px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--max-hero-bg);
+  color: var(--max-hero-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 14px 30px -18px rgba(22, 21, 43, 0.5);
+}
+
+.max-cover[data-tone="plain"] {
+  box-shadow: inset 0 0 0 1px var(--max-line), 0 14px 30px -18px rgba(22, 21, 43, 0.35);
+}
+
+.max-cover-top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.max-cover-status,
+.max-cover-switch {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--max-hero-ink) 14%, transparent);
+  font-family: var(--max-font-manrope), sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.max-cover-status::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.45;
+  vertical-align: 1px;
+}
+
+.max-cover-status.is-live::before {
+  background: #34d17a;
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(52, 209, 122, 0.25);
+}
+
+.max-cover-kicker {
+  font-family: var(--max-font-manrope), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.max-cover-title {
+  max-width: 100%;
+  margin-top: 6px;
+  font-family: var(--max-display, inherit);
+  font-weight: var(--max-display-weight, 800);
+  font-size: calc(1.75rem * var(--max-display-scale, 1));
+  line-height: 1.02;
+  letter-spacing: var(--max-display-tracking, -0.03em);
+  text-transform: var(--max-display-case, none);
+  overflow-wrap: break-word;
+}
+
+.max-cover-tagline {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  font-family: var(--max-font-manrope), sans-serif;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  opacity: 0.8;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.max-fresh {
+  margin: 12px 0 0;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: rgba(52, 209, 122, 0.13);
+  color: #16794a;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.max-fresh-warn {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+}
+
+.max-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.max-stat {
+  padding: 12px 12px 10px;
+  border-radius: 18px;
+  background: var(--max-sheet);
+  box-shadow: 0 1px 2px rgba(22, 21, 43, 0.04);
+}
+
+.max-stat strong {
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.max-stat span {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.76rem;
+  color: var(--max-muted);
+}
+
+.max-stat.is-hot {
+  background: var(--max-owner-gradient);
+  color: #ffffff;
+}
+
+.max-stat.is-hot span {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.max-share {
+  margin-top: 12px;
+}
+
+.max-share-row {
+  display: flex;
+  gap: 8px;
+}
+
+.max-share-row .max-owner-primary {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.max-share-link {
+  margin: 8px 2px 0;
+  overflow: hidden;
+  font-size: 0.78rem;
+  color: var(--max-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.max-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 20px calc(-1 * var(--max-gutter)) 14px;
+  padding: 8px var(--max-gutter);
+  background: color-mix(in srgb, var(--max-bg) 90%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.max-tabs button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 14px;
+  background: #e8e8f1;
+  color: var(--max-muted);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.max-tabs button[aria-selected="true"] {
+  background: var(--max-ink);
+  color: #ffffff;
+}
+
+.max-tab-count {
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #ff5a5f;
+  color: #ffffff;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+/* Calendar: one swipeable strip of days instead of a two-row grid. */
+.max-owner .max-cal {
+  display: flex;
+  gap: 6px;
+  margin: 0 calc(-1 * var(--max-gutter)) 14px;
+  padding: 2px var(--max-gutter) 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.max-owner .max-cal::-webkit-scrollbar {
+  display: none;
+}
+
+.max-owner .max-cal-day {
+  flex: 0 0 48px;
+  padding: 9px 0 7px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--max-sheet);
+  box-shadow: 0 1px 2px rgba(22, 21, 43, 0.05);
+}
+
+.max-owner .max-cal-day[aria-current="date"] .max-cal-num {
+  color: var(--max-accent-ink);
+}
+
+.max-owner .max-cal-day[aria-pressed="true"] {
+  background: var(--max-ink);
+  color: #ffffff;
+}
+
+.max-owner .max-cal-day[aria-pressed="true"] .max-cal-weekday,
+.max-owner .max-cal-day[aria-pressed="true"] .max-cal-num {
+  color: #ffffff;
+}
+
+.max-owner .max-cal-count {
+  min-width: 18px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: var(--max-accent);
+  color: #ffffff;
+  text-align: center;
+  line-height: 16px;
+}
+
+.max-owner .max-cal-count-empty {
+  background: transparent;
+}
+
+.max-empty {
+  padding: 26px 18px;
+  border-radius: 22px;
+  border: 1.5px dashed var(--max-line);
+  text-align: center;
+}
+
+.max-empty strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.max-empty span {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.86rem;
+  color: var(--max-muted);
+}
+
+.max-lead-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.max-owner-card.max-lead-card {
+  padding: 14px;
+}
+
+.max-owner-card.max-lead-card + .max-owner-card {
+  margin-top: 0;
+}
+
+.max-lead-card.is-new {
+  box-shadow: inset 3px 0 0 var(--max-accent), 0 8px 24px -12px rgba(91, 76, 240, 0.35);
+}
+
+.max-lead-card.is-declined {
+  opacity: 0.62;
+}
+
+.max-owner .max-lead-head {
+  align-items: center;
+}
+
+.max-lead-avatar {
+  flex: 0 0 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ecebfd;
+  color: var(--max-accent-ink);
+  font-weight: 800;
+}
+
+.max-lead-who {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.max-lead-who strong {
+  display: block;
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.max-lead-who span {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--max-muted);
+}
+
+.max-lead-what {
+  margin: 12px 0 0;
+  font-size: 0.97rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.max-lead-what span {
+  font-weight: 550;
+  color: var(--max-muted);
+}
+
+.max-lead-comment {
+  margin: 8px 0 0;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: #f5f5fa;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.max-lead-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.max-lead-actions .max-owner-primary,
+.max-lead-actions .max-owner-secondary {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 44px;
+  padding: 0 10px;
+  font-size: 0.92rem;
+}
+
+.max-lead-actions .max-owner-icon {
+  min-height: 44px;
+  flex-basis: 44px;
+  width: 44px;
+}
+
+.max-lead-actions:empty {
+  display: none;
+}
+
+.max-lead-phone {
+  margin: 8px 2px 0;
+  font-size: 0.8rem;
+  color: var(--max-muted);
+}
+
+.max-owner .max-catalog-row {
+  margin-top: 8px;
+}
+
+.max-catalog-add {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border: 1.5px dashed var(--max-line);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--max-accent-ink);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.max-selection-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid var(--max-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--max-accent) 5%, var(--max-sheet));
+  cursor: pointer;
+}
+
+.max-selection-toggle input {
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  accent-color: var(--max-accent);
+  flex: 0 0 auto;
+}
+
+.max-selection-toggle-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.max-selection-toggle-copy strong {
+  font-size: 0.94rem;
+}
+
+.max-selection-toggle-copy small {
+  color: var(--max-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.max-owner-quiet-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.max-owner-quiet-actions button {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: #e8e8f1;
+  color: var(--max-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.max-owner-quiet-actions .max-danger {
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+}

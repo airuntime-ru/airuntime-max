@@ -1,0 +1,425 @@
+# Production stack for airuntime.ru
+# Usage: docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+
+name: airuntime
+
+x-common-env: &common-env
+  ENVIRONMENT: production
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  # Every agent/orchestration capability (specialist roles, skills, MCP, worktree isolation,
+  # replanning, preview/design review) always runs - there are no on/off switches for them any
+  # more. Build the `preview` image once first:
+  # `docker compose -f docker-compose.prod.yml build preview`. Until that's done, every preview
+  # attempt degrades to a graceful "image not built" result, never a crash.
+  PREVIEW_IMAGE: ${PREVIEW_IMAGE:-airuntime-preview}
+  PREVIEW_TIMEOUT_SECONDS: ${PREVIEW_TIMEOUT_SECONDS:-90}
+  PREVIEW_MEMORY_LIMIT: ${PREVIEW_MEMORY_LIMIT:-1g}
+  PREVIEW_CPU_LIMIT: ${PREVIEW_CPU_LIMIT:-1.0}
+  DEFAULT_MODEL_OPENAI: ${DEFAULT_MODEL_OPENAI:-gpt-5.6-sol}
+  DEFAULT_MODEL_OPENROUTER: ${DEFAULT_MODEL_OPENROUTER:-openai/gpt-5.6-sol}
+  BILLING_CREDITS_PER_RUB: ${BILLING_CREDITS_PER_RUB:-100}
+  BILLING_USD_TO_RUB: ${BILLING_USD_TO_RUB:-100}
+  CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
+  CODEX_SIMPLE_TIMEOUT_SECONDS: ${CODEX_SIMPLE_TIMEOUT_SECONDS:-300}
+  ORCHESTRATION_TASK_DEFAULT_TIMEOUT_SECONDS: ${ORCHESTRATION_TASK_DEFAULT_TIMEOUT_SECONDS:-1800}
+  APP_DOMAIN: ${APP_DOMAIN}
+  PUBLIC_BASE_DOMAIN: ${APP_DOMAIN}
+  FRONTEND_URL: https://${APP_DOMAIN}
+  API_URL: https://api.${APP_DOMAIN}
+  ALLOWED_ORIGINS: https://${APP_DOMAIN},https://www.${APP_DOMAIN}
+  ALLOWED_HOSTS: ${APP_DOMAIN},www.${APP_DOMAIN},api.${APP_DOMAIN},backend
+  DEPLOYMENT_PUBLIC_NETWORK: airuntime_public
+  DEPLOYMENT_EXPOSE_HOST_PORTS: "false"
+  DEPLOYMENT_VOLUMES_DIR: ${DEPLOYMENT_VOLUMES_DIR:-/var/lib/airuntime/volumes}
+  CF_ZONE_ID: ${CF_ZONE_ID:-}
+  CF_API_TOKEN: ${CF_API_TOKEN:-}
+  SERVER_IP: ${SERVER_IP:-}
+  ROBOKASSA_MERCHANT_LOGIN: ${ROBOKASSA_MERCHANT_LOGIN:-}
+  ROBOKASSA_PASSWORD1: ${ROBOKASSA_PASSWORD1:-}
+  ROBOKASSA_PASSWORD2: ${ROBOKASSA_PASSWORD2:-}
+  ROBOKASSA_PASSWORD3: ${ROBOKASSA_PASSWORD3:-}
+  ROBOKASSA_TEST_MODE: ${ROBOKASSA_TEST_MODE:-false}
+  ROBOKASSA_HASH_ALGORITHM: ${ROBOKASSA_HASH_ALGORITHM:-md5}
+  # MAX messenger surface. MAX_MINIAPP_URL defaults to https://<APP_DOMAIN>/max, which is
+  # where the Next.js frontend serves it; MAX requires HTTPS from a trusted CA for both the
+  # mini app and the webhook, which Traefik already terminates here.
+  MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
+  MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-}
+  MAX_BOT_ID: ${MAX_BOT_ID:-}
+  MAX_API_BASE_URL: ${MAX_API_BASE_URL:-https://platform-api2.max.ru}
+  MAX_WEBHOOK_SECRET: ${MAX_WEBHOOK_SECRET:-}
+  MAX_MINIAPP_URL: ${MAX_MINIAPP_URL:-https://${APP_DOMAIN}/max}
+  MAX_CA_BUNDLE: ${MAX_CA_BUNDLE:-}
+
+x-traefik-labels: &traefik-labels
+  traefik.enable: "true"
+  traefik.docker.network: airuntime_public
+
+# Docker's default json-file driver has no size cap on its own - without this, a chatty
+# container (or a bug in one) can slowly fill the host disk with nothing ever pruning it. Applies
+# uniformly instead of just to backend/worker so no service (e.g. mailserver, minio) is missed.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  traefik:
+    logging: *default-logging
+    # traefik:v3.5's Docker client hardcodes API 1.24, which Docker Engine 29+ rejects outright
+    # ("client version 1.24 is too old") - no env var can work around this since the daemon
+    # itself refuses the client's declared version. 3.6.1+ added real API version negotiation.
+    image: traefik:v3.6
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./infra/traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik_letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - public
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - internal
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    logging: *default-logging
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+      MINIO_SERVER_URL: https://s3.${APP_DOMAIN}
+      MINIO_BROWSER_REDIRECT_URL: https://s3-console.${APP_DOMAIN}
+    volumes:
+      - minio_data:/data
+    networks:
+      - internal
+      - public
+    labels:
+      <<: *traefik-labels
+      traefik.http.routers.minio.rule: Host(`s3.${APP_DOMAIN}`)
+      traefik.http.routers.minio.entrypoints: websecure
+      traefik.http.routers.minio.tls.certresolver: letsencrypt
+      traefik.http.services.minio.loadbalancer.server.port: "9000"
+      traefik.http.routers.minio-console.rule: Host(`s3-console.${APP_DOMAIN}`)
+      traefik.http.routers.minio-console.entrypoints: websecure
+      traefik.http.routers.minio-console.tls.certresolver: letsencrypt
+      traefik.http.services.minio-console.loadbalancer.server.port: "9001"
+
+  minio-init:
+    image: minio/mc:latest
+    logging: *default-logging
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY}; do sleep 1; done;
+      mc mb local/${S3_BUCKET} --ignore-existing;
+      mc anonymous set none local/${S3_BUCKET};
+      exit 0;
+      "
+    networks:
+      - internal
+
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    hostname: mail
+    domainname: ${APP_DOMAIN}
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "25:25"
+      - "587:587"
+      - "465:465"
+      - "993:993"
+    volumes:
+      - ./infra/mail/data/:/var/mail/
+      - ./infra/mail/state/:/var/mail-state/
+      - ./infra/mail/config/:/tmp/docker-mailserver/
+      - ./infra/mail/config/postfix-accounts.cf:/tmp/docker-mailserver/postfix-accounts.cf:ro
+      - ./infra/mail/config/postfix-virtual.cf:/tmp/docker-mailserver/postfix-virtual.cf:ro
+    environment:
+      - OVERRIDE_HOSTNAME=mail.${APP_DOMAIN}
+      - POSTMASTER_ADDRESS=admin@${APP_DOMAIN}
+      - ENABLE_SPAMASSASSIN=0
+      - ENABLE_CLAMAV=0
+      - ENABLE_FAIL2BAN=1
+      - ENABLE_POSTGREY=0
+      - ONE_DIR=1
+      - SSL_TYPE=manual
+      - SSL_CERT_PATH=/tmp/docker-mailserver/ssl/cert.pem
+      - SSL_KEY_PATH=/tmp/docker-mailserver/ssl/key.pem
+      - PERMIT_DOCKER=connected-networks
+      - POSTFIX_INET_PROTOCOLS=ipv4
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - internal
+      - public
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+      PROVIDER_NAME: ${PROVIDER_NAME:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      SMTP_HOST: mailserver
+      SMTP_PORT: 587
+      SMTP_USERNAME: noreply@${APP_DOMAIN}
+      SMTP_PASSWORD: ${MAIL_NOREPLY_PASSWORD}
+      SMTP_FROM: noreply@${APP_DOMAIN}
+      SMTP_FROM_NAME: AIRuntime
+      SMTP_USE_TLS: "true"
+      SUPPORT_EMAIL: support@${APP_DOMAIN}
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_PUBLIC_ENDPOINT_URL: https://s3.${APP_DOMAIN}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      ANALYTICS_INGEST_KEY: ${ANALYTICS_INGEST_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+      mailserver:
+        condition: service_started
+    networks:
+      - internal
+      - public
+    volumes:
+      - airruntime_projects_data:/data/airruntime-projects
+    labels:
+      <<: *traefik-labels
+      traefik.http.routers.api.rule: Host(`api.${APP_DOMAIN}`)
+      traefik.http.routers.api.entrypoints: websecure
+      traefik.http.routers.api.tls.certresolver: letsencrypt
+      traefik.http.services.api.loadbalancer.server.port: "8000"
+      traefik.http.services.api.loadbalancer.responseforwarding.flushinterval: "1ms"
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["sh", "/app/entrypoint.sh", "worker"]
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+      PROVIDER_NAME: ${PROVIDER_NAME:-openai}
+      # Worker now resolves the OpenAI key itself (it's the one that execs into the codex
+      # container - see codex_worker.py) instead of only the backend process needing it.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      # The production Compose project attaches worker-launched Codex turns to the internal
+      # network. The generic config default ("airuntime_default") only exists in local Compose.
+      CODEX_NETWORK: ${CODEX_NETWORK:-airuntime_internal}
+      SMTP_HOST: mailserver
+      SMTP_PORT: 587
+      SMTP_USERNAME: noreply@${APP_DOMAIN}
+      SMTP_PASSWORD: ${MAIL_NOREPLY_PASSWORD}
+      SMTP_FROM: noreply@${APP_DOMAIN}
+      SMTP_FROM_NAME: AIRuntime
+      SMTP_USE_TLS: "true"
+      SUPPORT_EMAIL: support@${APP_DOMAIN}
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_PUBLIC_ENDPOINT_URL: https://s3.${APP_DOMAIN}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - airruntime_projects_data:/data/airruntime-projects
+      # Same path on host and in worker so bind-mount dirs for project Postgres/etc. persist
+      # across rebuilds and can be created via mkdir from the worker process.
+      - ${DEPLOYMENT_VOLUMES_DIR:-/var/lib/airuntime/volumes}:${DEPLOYMENT_VOLUMES_DIR:-/var/lib/airuntime/volumes}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      mailserver:
+        condition: service_started
+    networks:
+      - internal
+
+  codex:
+    build:
+      context: .
+      dockerfile: deployment/codex/Dockerfile
+    logging: *default-logging
+    # Build source only. The worker creates a fresh isolated container from this image for
+    # every turn; a long-lived `node` container exits immediately and only creates noise.
+    profiles: ["build-only"]
+
+  # Build source only - the worker launches a fresh, single-purpose container from this image
+  # per preview_project call (see backend/src/services/preview_runner.py), never a long-lived
+  # instance, so nothing here needs to run by default. Build it once with
+  # `docker compose -f docker-compose.prod.yml build preview` - the preview step runs on every
+  # turn, same one-time step deployment/codex/Dockerfile already needs.
+  preview:
+    build:
+      context: .
+      dockerfile: deployment/preview/Dockerfile
+    logging: *default-logging
+    profiles: ["build-only"]
+
+  django-admin:
+    build:
+      context: .
+      dockerfile: admin/Dockerfile
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "false"
+      DJANGO_ALLOWED_HOSTS: admin.${APP_DOMAIN}
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://admin.${APP_DOMAIN}
+      DJANGO_SUPERUSER_EMAIL: admin@${APP_DOMAIN}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+      APP_DOMAIN: ${APP_DOMAIN}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      FRONTEND_URL: https://${APP_DOMAIN}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - internal
+      - public
+    labels:
+      <<: *traefik-labels
+      traefik.http.routers.django-admin.rule: Host(`admin.${APP_DOMAIN}`)
+      traefik.http.routers.django-admin.entrypoints: websecure
+      traefik.http.routers.django-admin.tls.certresolver: letsencrypt
+      traefik.http.services.django-admin.loadbalancer.server.port: "8001"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://api.${APP_DOMAIN}/api/v1
+        NEXT_PUBLIC_SITE_URL: https://${APP_DOMAIN}
+        NEXT_PUBLIC_BASE_DOMAIN: ${APP_DOMAIN}
+        NEXT_PUBLIC_ANALYTICS_INGEST_KEY: ${ANALYTICS_INGEST_KEY:-}
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: https://api.${APP_DOMAIN}/api/v1
+      NEXT_PUBLIC_SITE_URL: https://${APP_DOMAIN}
+      NEXT_PUBLIC_BASE_DOMAIN: ${APP_DOMAIN}
+      NEXT_PUBLIC_ANALYTICS_INGEST_KEY: ${ANALYTICS_INGEST_KEY:-}
+    depends_on:
+      - backend
+    networks:
+      - public
+    labels:
+      <<: *traefik-labels
+      traefik.http.routers.frontend.rule: Host(`${APP_DOMAIN}`) || Host(`www.${APP_DOMAIN}`)
+      traefik.http.routers.frontend.entrypoints: websecure
+      traefik.http.routers.frontend.tls.certresolver: letsencrypt
+      traefik.http.services.frontend.loadbalancer.server.port: "3000"
+
+  # Telegram-бот для infra-алертов (деплой, логи, health-check, stuck runs).
+  # Без AIRUNTIME_TELEGRAM_BOT_TOKEN контейнер idle'ит и не мешает стеку.
+  ops-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.ops-bot
+    container_name: airuntime-ops-bot
+    restart: unless-stopped
+    logging: *default-logging
+    env_file:
+      - .env
+    environment:
+      STATE_DIR: /var/lib/ops-bot
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      HEALTH_CHECK_URLS: https://api.${APP_DOMAIN}/health,https://admin.${APP_DOMAIN}/,https://${APP_DOMAIN}/
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ops_bot_state:/var/lib/ops-bot
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - internal
+
+# The host's uplink (ens3) has an MTU of 1400, but Docker defaults every bridge it creates
+# to 1500 and hands that to the containers. Nothing fails outright - the kernel just never
+# learns the real path MTU, so every full-size segment is dropped and recovered by
+# retransmission. Measured on this host: the same 544 KB download takes 0.3s with MTU 1400
+# and 4.1s with 1500, and anything on a deadline (a TLS handshake, a streaming LLM
+# response) intermittently times out instead. Keep these in step with `ip link show ens3`.
+networks:
+  # Deliberately NOT carrying the mtu option: generated user deployments are attached to
+  # this network too, and Docker will not change a network's options in place. Compose
+  # answers the mismatch by trying to recreate the network, fails on those endpoints, and
+  # leaves the stack half down - which is exactly what it did once. Setting it here needs a
+  # window in which the user containers can be stopped as well.
+  public:
+    name: airuntime_public
+  internal:
+    name: airuntime_internal
+    driver_opts:
+      com.docker.network.driver.mtu: 1400
+
+volumes:
+  postgres_data:
+  minio_data:
+  traefik_letsencrypt:
+  airruntime_projects_data:
+  ops_bot_state:

@@ -1,0 +1,107 @@
+{# Shared email macros - table-based, inline styles only.
+
+   Gradient rule for the whole system: every gradient ships with a solid `bgcolor` twin.
+   Outlook (Word rendering engine) ignores background-image and would otherwise show white. #}
+
+{% macro button(label, href) -%}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:26px 0 8px;">
+  <tr>
+    <td align="left">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ href }}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="20%" stroke="f" fillcolor="{{ colors.accent }}">
+        <w:anchorlock/>
+        <center style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;">{{ label }}</center>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-- -->
+      <a href="{{ href }}" style="display:inline-block;background-color:{{ colors.accent }};background-image:{{ brand_gradient }};color:#ffffff;font-family:{{ font_stack }};font-size:16px;font-weight:600;line-height:48px;text-align:center;text-decoration:none;padding:0 28px;border-radius:10px;mso-hide:all;">{{ label }}</a>
+      <!--<![endif]-->
+    </td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{% macro otp_code(code) -%}
+{# The single most important element in the most-sent letter, so it gets the deep-space
+   treatment rather than a pale rectangle. #}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0;">
+  <tr>
+    <td align="center" bgcolor="{{ colors.space }}" style="background-color:{{ colors.space }};background-image:linear-gradient(135deg,{{ colors.space }} 0%,{{ colors.space_2 }} 100%);border-radius:12px;padding:26px 16px;">
+      <span class="email-otp" style="font-family:{{ mono_stack }};font-size:38px;line-height:1.15;font-weight:700;letter-spacing:10px;color:#FFFFFF;">{{ code }}</span>
+    </td>
+  </tr>
+  <tr>
+    <td bgcolor="{{ colors.accent }}" height="3" style="height:3px;line-height:3px;font-size:0;background-color:{{ colors.accent }};background-image:{{ brand_gradient }};border-radius:0 0 12px 12px;">&nbsp;</td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{% macro info_box(title=None) -%}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0;">
+  <tr>
+    <td style="background-color:{{ colors.page }};border:1px solid {{ colors.border }};border-radius:12px;padding:16px 18px;">
+      {% if title %}<p style="margin:0 0 8px;font-family:{{ font_stack }};font-size:13px;font-weight:600;color:{{ colors.ink }};">{{ title }}</p>{% endif %}
+      {{ caller() }}
+    </td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{# Valid tones: accent (default), success, warning, error. An unknown tone silently
+   falls back to accent, which reads as "all good" - so keep to this vocabulary. #}
+{% macro status_badge(label, tone='accent') -%}
+{%- set bg = colors.accent_soft -%}
+{%- set fg = colors.accent -%}
+{%- if tone == 'success' -%}{%- set bg = colors.success_soft -%}{%- set fg = colors.success -%}{%- endif -%}
+{%- if tone == 'warning' -%}{%- set bg = colors.warning_soft -%}{%- set fg = colors.warning -%}{%- endif -%}
+{%- if tone == 'error' -%}{%- set bg = colors.error_soft -%}{%- set fg = colors.error -%}{%- endif -%}
+<span style="display:inline-block;background-color:{{ bg }};color:{{ fg }};font-family:{{ font_stack }};font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;line-height:1;padding:8px 12px;border-radius:999px;">{{ label }}</span>
+{%- endmacro %}
+
+{% macro divider() -%}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0;">
+  <tr>
+    <td style="border-top:1px solid {{ colors.border }};font-size:0;line-height:0;">&nbsp;</td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{% macro security_notice(text) -%}
+<p style="margin:18px 0 0;font-family:{{ font_stack }};font-size:14px;line-height:1.6;color:{{ colors.muted }};">{{ text }}</p>
+{%- endmacro %}
+
+{% macro billing_summary(rows) -%}
+{# `row.block` is for free text (an error summary, a rejection note): a sentence
+   right-aligned against a label reads badly, so it stacks and goes left. #}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0;border:1px solid {{ colors.border }};border-radius:12px;overflow:hidden;">
+  {% for row in rows %}
+  {% set zebra = colors.surface if loop.index0 % 2 == 0 else colors.page %}
+  {% set edge = '' if loop.last else 'border-bottom:1px solid ' ~ colors.border ~ ';' %}
+  {% if row.block %}
+  <tr>
+    <td colspan="2" style="padding:13px 18px;font-family:{{ font_stack }};background-color:{{ zebra }};{{ edge }}">
+      <div style="font-size:12px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:{{ colors.muted }};">{{ row.label }}</div>
+      <div style="margin-top:5px;font-size:14px;line-height:1.55;color:{{ colors.ink }};">{{ row.value }}</div>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td style="padding:13px 18px;font-family:{{ font_stack }};font-size:14px;color:{{ colors.muted }};background-color:{{ zebra }};{{ edge }}">{{ row.label }}</td>
+    <td align="right" style="padding:13px 18px;font-family:{{ font_stack }};font-size:14px;font-weight:600;color:{{ colors.ink }};background-color:{{ zebra }};{{ edge }}">{{ row.value }}</td>
+  </tr>
+  {% endif %}
+  {% endfor %}
+</table>
+{%- endmacro %}
+
+{% macro url_pill(url, label=None) -%}
+{# Reads as the product's own address bar rather than a raw blue link. Also used as the
+   copy-paste fallback under auth buttons, so it must stay selectable text. #}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:14px 0 0;">
+  <tr>
+    <td style="background-color:{{ colors.page }};border:1px solid {{ colors.border }};border-radius:999px;padding:9px 16px;font-family:{{ mono_stack }};font-size:13px;line-height:1.4;word-break:break-all;">
+      <a href="{{ url }}" style="color:{{ colors.accent }};text-decoration:none;">{{ label or url }}</a>
+    </td>
+  </tr>
+</table>
+{%- endmacro %}

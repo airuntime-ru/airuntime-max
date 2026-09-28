@@ -1,0 +1,17 @@
+pytest>=8.4.0
+# Required for every `@pytest.mark.asyncio` test in this suite (test_orchestrator.py,
+# test_pipeline_llm.py, test_product_pipeline.py, the new test_orchestration_*.py files, ...).
+# Was previously missing from this file entirely - without it those tests don't run their
+# async body at all, they fail outright with "async def functions are not natively supported"
+# (confirmed: not silently skipped/passed - pytest reports them FAILED).
+pytest-asyncio>=0.24.0
+pytest-cov>=5.0.0
+httpx>=0.27.0
+moto[s3]>=5.0.0
+ruff>=0.11.0
+pre-commit>=4.2.0
+# Drives a real headless Chromium against a local HTTP fixture in test_run_preview_browser.py -
+# exercises the exact same detection logic deployment/preview/run_preview.py ships with. Needs
+# `playwright install chromium` once after pip install; that test skips cleanly if the browser
+# binary isn't present, so its absence never fails the rest of the suite.
+playwright>=1.48.0

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="55 45 402 402" fill="none" role="img" aria-label="AIRuntime">
+  <defs>
+    <linearGradient id="ar-left" x1="96" y1="48" x2="280" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4B5FD" stop-opacity="0.95"/>
+      <stop offset="0.42" stop-color="#7DD3FC" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#5EEAD4" stop-opacity="0.82"/>
+    </linearGradient>
+    <linearGradient id="ar-right" x1="232" y1="40" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BAE6FD"/>
+      <stop offset="0.45" stop-color="#67E8F9"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="ar-cross" x1="152" y1="228" x2="360" y2="312" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0F9FF"/>
+      <stop offset="1" stop-color="#93C5FD"/>
+    </linearGradient>
+    <linearGradient id="ar-highlight" x1="180" y1="120" x2="332" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="ar-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#ar-glow)">
+    <path
+      d="M156 432C118 360 104 276 124 196C136 152 158 112 198 82C214 70 230 64 246 60C220 108 198 182 184 258C172 326 164 384 156 432Z"
+      fill="url(#ar-left)"
+      opacity="0.94"
+    />
+    <path
+      d="M356 432C394 360 408 276 388 196C376 152 354 112 314 82C298 70 282 64 266 60C292 108 314 182 328 258C340 326 348 384 356 432Z"
+      fill="url(#ar-right)"
+      opacity="0.9"
+    />
+    <path
+      d="M168 302C198 258 236 236 256 236C276 236 314 258 344 302C332 318 306 330 256 330C206 330 180 318 168 302Z"
+      fill="url(#ar-cross)"
+      opacity="0.96"
+    />
+    <path
+      d="M198 118C214 104 236 96 256 96C276 96 298 104 314 118C286 148 226 148 198 118Z"
+      fill="url(#ar-highlight)"
+    />
+    <path
+      d="M214 286C228 272 242 266 256 266C270 266 284 272 298 286C284 296 268 302 256 302C244 302 228 296 214 286Z"
+      fill="#FFFFFF"
+      opacity="0.35"
+    />
+  </g>
+</svg>

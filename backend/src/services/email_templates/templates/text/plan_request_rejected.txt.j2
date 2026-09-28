@@ -1,0 +1,10 @@
+AIRuntime
+
+Заявка на смену тарифа отклонена
+
+Тариф: {{ plan_name }}
+{% if admin_note %}Причина: {{ admin_note }}
+{% endif %}
+Текущий тариф и баланс не изменились.
+
+{{ billing_url or frontend_url }}

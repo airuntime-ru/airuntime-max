@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="55 45 402 402" fill="none" role="img" aria-label="AIRuntime">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      #airuntime-shine {
+        animation: airuntime-shine 7s ease-in-out infinite;
+      }
+    }
+    @keyframes airuntime-shine {
+      0% { transform: translateX(-220px); opacity: .3; }
+      42% { opacity: .75; }
+      70% { transform: translateX(580px); opacity: .2; }
+      100% { transform: translateX(580px); opacity: 0; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="airuntime-left" x1="110" y1="430" x2="280" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C7B8FF" stop-opacity=".9"/>
+      <stop offset=".44" stop-color="#8BDFFF" stop-opacity=".96"/>
+      <stop offset="1" stop-color="#1D8CFF" stop-opacity=".88"/>
+    </linearGradient>
+    <linearGradient id="airuntime-right" x1="238" y1="76" x2="424" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEFBFF" stop-opacity=".96"/>
+      <stop offset=".43" stop-color="#50DBE5" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#2388FF" stop-opacity=".9"/>
+    </linearGradient>
+    <linearGradient id="airuntime-cross" x1="146" y1="330" x2="370" y2="258" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CFC6FF" stop-opacity=".8"/>
+      <stop offset=".55" stop-color="#EAF9FF" stop-opacity=".88"/>
+      <stop offset="1" stop-color="#14B8D7" stop-opacity=".78"/>
+    </linearGradient>
+    <linearGradient id="airuntime-shine-gradient" x1="0" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity=".78"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="airuntime-glow" x="-18%" y="-18%" width="136%" height="136%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .14 0 0 0 0 .53 0 0 0 0 1 0 0 0 .35 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#airuntime-glow)">
+    <path d="M97 404c52-154 88-250 126-297 29-36 63-43 93-29 42 19 77 81 107 183 18 59 28 109 30 132 4 34-16 57-43 57-18 0-32-10-43-31-47-91-91-141-132-151-48-12-91 29-129 122-5 12-9 18-9 14Z" fill="url(#airuntime-left)" opacity=".88"/>
+    <path d="M217 109c29-36 63-45 96-31 41 18 78 81 110 183 18 59 28 109 30 132 3 31-13 53-38 56-20 2-36-9-48-31-18-36-36-66-54-90-35-159-69-232-96-219Z" fill="url(#airuntime-right)" opacity=".8"/>
+    <path d="M83 407c55-78 107-119 158-126 58-7 112 31 166 115-12 34-36 47-65 27-40-29-74-45-103-47-34-3-70 14-109 51-26 24-52 21-47-20Z" fill="url(#airuntime-cross)" opacity=".9"/>
+    <path d="M105 397c52-151 88-244 125-289 28-34 60-41 89-28 40 18 74 78 104 177 17 57 28 106 30 128" fill="none" stroke="#1293FF" stroke-opacity=".45" stroke-width="5" stroke-linecap="round"/>
+    <path d="M83 407c55-78 107-119 158-126 58-7 112 31 166 115" fill="none" stroke="#2FB7FF" stroke-opacity=".5" stroke-width="4" stroke-linecap="round"/>
+    <path id="airuntime-shine" d="M70 55h120v420H70z" fill="url(#airuntime-shine-gradient)" opacity=".72"/>
+  </g>
+</svg>

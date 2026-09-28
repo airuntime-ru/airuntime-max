@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>AIRuntime × MAX</title>
+<style>
+  /* 16:9 slides printed straight to PDF. @page must equal the .slide box exactly, or
+     Chrome rescales and hairlines appear along the edges. */
+  @page { size: 1280px 720px; margin: 0; }
+
+  :root {
+    /* MAX / VK */
+    --max-blue: #0077ff;
+    --max-violet: #7b2cff;
+    --max-pink: #ff2d87;
+    /* AIRuntime deep space */
+    --ar-space: #05070f;
+    --ar-space-2: #0a1123;
+    --ar-mint: #5ce6b0;
+    /* Ink & surfaces */
+    --ink: #0d1117;
+    --ink-2: #4a5464;
+    --ink-3: #79839a;
+    --line: #dde4ee;
+    --surface: #ffffff;
+    --surface-2: #f3f6fb;
+    --good: #1f8a55;
+
+    --grad: linear-gradient(120deg, var(--max-blue), var(--max-violet));
+    --ar-starfield: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='%23fff'%3E%3Ccircle cx='20' cy='31' r='1' opacity='.85'/%3E%3Ccircle cx='141' cy='52' r='.8' opacity='.55'/%3E%3Ccircle cx='74' cy='119' r='1.2' opacity='.7'/%3E%3Ccircle cx='181' cy='161' r='.7' opacity='.45'/%3E%3Ccircle cx='41' cy='176' r='.9' opacity='.6'/%3E%3Ccircle cx='112' cy='14' r='.6' opacity='.4'/%3E%3Ccircle cx='166' cy='96' r='1' opacity='.5'/%3E%3Ccircle cx='96' cy='72' r='.6' opacity='.38'/%3E%3Ccircle cx='8' cy='94' r='.7' opacity='.42'/%3E%3Ccircle cx='128' cy='188' r='.8' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: #8d95a4;
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    /* Without this the dark slides print as blank white paper. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .slide {
+    position: relative;
+    width: 1280px; height: 720px;
+    overflow: hidden;
+    background: var(--surface);
+    padding: 44px 58px 58px;
+    display: flex; flex-direction: column;
+    page-break-after: always; break-after: page;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  @media screen {
+    body { padding: 24px 0; }
+    .slide { margin: 0 auto 22px; box-shadow: 0 18px 50px -24px rgba(6,12,24,.6); }
+  }
+
+  /* --- typography --------------------------------------------------------- */
+  h1 { margin: 0; font-size: 66px; line-height: 1.02; letter-spacing: -0.035em; font-weight: 800; }
+  h2 { margin: 0 0 5px; font-size: 36px; line-height: 1.08; letter-spacing: -0.028em; font-weight: 750; }
+  h3 { margin: 0 0 7px; font-size: 18.5px; line-height: 1.25; letter-spacing: -0.012em; font-weight: 680; }
+  p  { margin: 0; font-size: 16px; line-height: 1.46; color: var(--ink-2); }
+  .lead { font-size: 20px; line-height: 1.4; color: var(--ink-2); }
+  .small { font-size: 13.5px; line-height: 1.4; color: var(--ink-3); }
+  strong { font-weight: 680; color: var(--ink); }
+  code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: .92em; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+    font-size: 11.5px; font-weight: 750; letter-spacing: .17em; text-transform: uppercase;
+    color: var(--max-blue);
+  }
+  /* The gradient tick is the one mark both brands share: MAX blue running into violet. */
+  .eyebrow::before { content: ""; width: 30px; height: 4px; border-radius: 2px; background: var(--grad); }
+
+  .slide-head { margin-bottom: 20px; }
+  .slide-head p { font-size: 16.5px; max-width: 960px; }
+
+  /* --- footer ------------------------------------------------------------- */
+  .foot {
+    position: absolute; left: 58px; right: 58px; bottom: 22px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .foot-brand { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+  .foot-x { opacity: .55; font-weight: 600; }
+  .foot-n { font-size: 13px; font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  /* --- layout ------------------------------------------------------------- */
+  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+  .cols { display: grid; gap: 16px; }
+  .c2 { grid-template-columns: 1fr 1fr; }
+  .c3 { grid-template-columns: repeat(3, 1fr); }
+  .c4 { grid-template-columns: repeat(4, 1fr); }
+  .split { display: grid; grid-template-columns: 1.04fr .96fr; gap: 26px; align-items: start; }
+
+  .card { background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; padding: 17px 19px; }
+  .card.plain { background: var(--surface); }
+  .card.accent { background: linear-gradient(140deg, rgba(0,119,255,.08), rgba(123,44,255,.08)); border-color: rgba(0,119,255,.24); }
+  /* A hairline of the shared gradient along the top edge marks the lead card on a slide. */
+  .card.topline { position: relative; overflow: hidden; }
+  .card.topline::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--grad); }
+
+  .tile { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; overflow: hidden; }
+  .tile::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--grad); }
+  .tile .value { font-size: 36px; line-height: 1; font-weight: 800; letter-spacing: -.035em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .tile .unit { font-size: 17px; font-weight: 700; color: var(--ink-2); margin-left: 4px; }
+  .tile .label { margin-top: 8px; font-size: 13.5px; line-height: 1.35; color: var(--ink-2); }
+  .tile .src { margin-top: 5px; font-size: 11.5px; color: var(--ink-3); }
+
+  ul { margin: 0; padding: 0; list-style: none; }
+  li { position: relative; padding-left: 19px; font-size: 15px; line-height: 1.44; color: var(--ink-2); margin-bottom: 6px; }
+  li::before { content: ""; position: absolute; left: 3px; top: 8px; width: 6px; height: 6px; border-radius: 2px; background: var(--max-blue); }
+  li:last-child { margin-bottom: 0; }
+  li strong { color: var(--ink); }
+
+  .step-n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 9px;
+    background: var(--grad); color: #fff; font-size: 14px; font-weight: 800;
+    margin-bottom: 10px;
+  }
+
+  .kv { display: grid; grid-template-columns: 192px 1fr; gap: 8px 16px; font-size: 15px; line-height: 1.4; }
+  .kv dt { color: var(--ink-3); }
+  .kv dd { margin: 0; color: var(--ink); word-break: break-word; }
+
+  .pill { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 700; }
+  .pill-fact { background: rgba(31,138,85,.13); color: var(--good); }
+  .pill-guess { background: rgba(255,45,135,.11); color: #d31169; }
+  .pill-blue { background: rgba(0,119,255,.11); color: var(--max-blue); }
+
+  /* --- phone frames -------------------------------------------------------- */
+  /* Shots are whole 390x780 screens, never cropped - a sliced screenshot reads as a
+     broken slide. The bezel makes the aspect ratio look deliberate. Everything scales off
+     --pw so a frame looks the same at any size; build-pptx.js uses the same ratios.
+     Size these by the height they end up with (--pw x 1.948), not by the width: at 268px
+     three of them are 522px tall and do not fit under a slide title. */
+  .phone {
+    --pw: 222px;
+    width: var(--pw); margin: 0 auto;
+    border-radius: calc(var(--pw) * .082); padding: calc(var(--pw) * .026);
+    background: linear-gradient(160deg, #e7ecf5, #ccd6e6);
+    box-shadow: 0 16px 34px -18px rgba(9,18,40,.5);
+  }
+  /* The ratio is declared, not discovered: the layout must be the same whether or not the
+     screenshot has loaded yet - and so must any check run against it. */
+  .phone img { display: block; width: 100%; aspect-ratio: 1 / 2; border-radius: calc(var(--pw) * .06); }
+  .phone.dark {
+    background: linear-gradient(160deg, #2e374c, #141a28);
+    box-shadow: 0 34px 70px -26px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .shot-caption { margin: 14px auto 0; max-width: 330px; text-align: center; }
+  .gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+  .gallery .shot-caption { margin-top: 10px; }
+  .gallery .shot-caption span { font-size: 12px; }
+  .niche { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .niche span { padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); font-size: 13.5px; color: #eaf1ff; }
+  .fill { color: #d31169; font-weight: 700; border-bottom: 1px dashed currentColor; }
+  .shot-caption b { display: block; font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+  .shot-caption span { font-size: 13px; line-height: 1.38; color: var(--ink-3); }
+
+  /* --- pixel-step motif ---------------------------------------------------- */
+  /* The staircase is MAX's own brand device; on the cover it steps across the seam
+     into AIRuntime's starfield, which is the whole idea of the collaboration. */
+  .steps-tr { position: absolute; top: 0; right: 0; }
+  .steps-bl { position: absolute; bottom: 0; left: 0; }
+
+  /* --- cosmos slides (AIRuntime) ------------------------------------------- */
+  .cosmos {
+    color: #eaf1ff;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% -12%, rgba(35,136,255,.28), transparent 62%),
+      radial-gradient(ellipse 60% 52% at 10% 22%, rgba(124,108,255,.26), transparent 66%),
+      radial-gradient(ellipse 66% 54% at 94% 76%, rgba(25,199,210,.16), transparent 68%),
+      linear-gradient(176deg, var(--ar-space) 0%, var(--ar-space-2) 48%, #070c1a 100%);
+  }
+  .cosmos::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: var(--ar-starfield);
+    background-size: 220px 220px;
+    opacity: .5; pointer-events: none;
+  }
+  .cosmos > * { position: relative; z-index: 1; }
+  /* ...except the footer, which must stay pinned to the bottom padding. */
+  .cosmos > .foot { position: absolute; z-index: 2; }
+  .cosmos h2, .cosmos h1 { color: #fff; }
+  .cosmos p, .cosmos li { color: rgba(234,241,255,.74); }
+  .cosmos strong, .cosmos li strong { color: #fff; }
+  .cosmos .card { background: rgba(255,255,255,.055); border-color: rgba(255,255,255,.13); }
+  .cosmos .card.accent { background: linear-gradient(140deg, rgba(35,136,255,.16), rgba(124,108,255,.14)); border-color: rgba(127,182,255,.3); }
+  .cosmos .small { color: rgba(234,241,255,.5); }
+  .cosmos .eyebrow { color: #8ec4ff; }
+  .cosmos li::before { background: #8ec4ff; }
+  .cosmos .foot-brand, .cosmos .foot-n { color: rgba(234,241,255,.52); }
+
+  /* --- criteria map ------------------------------------------------------- */
+  /* The jury scores criterion by criterion; this slide tells them where each answer is. */
+  .crit { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .crit-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 3px 14px; align-items: start;
+    padding: 12px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line);
+  }
+  .crit-row.tech { background: linear-gradient(140deg, rgba(0,119,255,.06), rgba(123,44,255,.06)); border-color: rgba(0,119,255,.2); }
+  .crit-row h3 { margin: 0; font-size: 16px; }
+  .crit-row h3 .w { margin-left: 6px; font-size: 12px; font-weight: 750; color: var(--max-blue); letter-spacing: .02em; }
+  .crit-row p { margin: 0; font-size: 13px; line-height: 1.36; color: var(--ink-2); }
+  .crit-n { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 21px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); white-space: nowrap; }
+  .crit-legend { margin-top: 12px; font-size: 12.5px; color: var(--ink-3); }
+
+  /* --- comparison table ---------------------------------------------------- */
+  .cmp { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .cmp th, .cmp td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.34; color: var(--ink-2); }
+  .cmp th { font-size: 11.5px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); border-bottom: 1.5px solid var(--line); }
+  .cmp td:first-child { width: 190px; font-weight: 650; color: var(--ink); }
+  .cmp .ours { background: rgba(0,119,255,.07); color: var(--ink); font-weight: 600; }
+  .cmp th.ours { color: var(--max-blue); border-radius: 12px 12px 0 0; }
+  .cmp tr:last-child .ours { border-radius: 0 0 12px 12px; }
+
+  /* --- MoSCoW -------------------------------------------------------------- */
+  .mos h3 { display: flex; align-items: center; gap: 8px; }
+  .mos .tag { display: inline-block; padding: 3px 9px; border-radius: 7px; font-size: 11.5px; font-weight: 750; letter-spacing: .04em; }
+  .mos .must { background: rgba(31,138,85,.13); color: var(--good); }
+  .mos .should { background: rgba(0,119,255,.11); color: var(--max-blue); }
+  .mos .could { background: rgba(123,44,255,.11); color: var(--max-violet); }
+  .mos .wont { background: rgba(16,20,28,.08); color: var(--ink-3); }
+  .mos li { font-size: 14.5px; }
+
+  /* --- chat messages (what the bot actually sends) ------------------------- */
+  .msg {
+    background: #fff; border: 1px solid var(--line); border-radius: 18px 18px 18px 6px;
+    padding: 13px 15px; box-shadow: 0 16px 34px -22px rgba(9,18,40,.45);
+    font-size: 14px; line-height: 1.45; color: var(--ink);
+  }
+  .msg .from { margin-bottom: 5px; font-size: 11.5px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; color: var(--max-blue); }
+  .msg .q { color: var(--ink-3); font-style: italic; }
+  .msg-btn { margin-top: 11px; padding: 8px 10px; border-radius: 10px; text-align: center; background: rgba(0,119,255,.1); color: var(--max-blue); font-size: 13.5px; font-weight: 700; }
+  .flow { display: grid; grid-template-columns: 1fr 32px auto 32px 1fr; align-items: center; gap: 0; }
+  .flow .arrow { text-align: center; font-size: 26px; color: var(--ink-3); }
+  /* The owner's side of the loop, cut from the real screen at full size: a whole phone at
+     this width would shrink the one thing that matters - the buttons - into illegibility. */
+  .lead-card { width: 330px; padding: 6px; border-radius: 18px; background: #f2f4f7; box-shadow: 0 16px 34px -20px rgba(9,18,40,.5); }
+  .lead-card img { display: block; width: 100%; aspect-ratio: 740 / 432; border-radius: 14px; }
+  .flow .cap { margin-top: 10px; font-size: 13px; line-height: 1.38; color: var(--ink-3); text-align: center; }
+  .states { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .states b { display: block; margin-bottom: 3px; font-size: 14px; color: var(--ink); }
+  .states span { display: block; font-size: 13px; line-height: 1.38; color: var(--ink-2); }
+
+  /* --- replication steps --------------------------------------------------- */
+  .road { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .road .card { padding: 14px 15px; }
+  .road h3 { font-size: 16px; margin-bottom: 6px; }
+  .road .where { margin-bottom: 8px; font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--ink); }
+  .road dl { margin: 0; }
+  .road dt { margin-top: 7px; font-size: 10.5px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+  .road dd { margin: 1px 0 0; font-size: 13.2px; line-height: 1.36; color: var(--ink-2); }
+  .road .step-n { width: 24px; height: 24px; border-radius: 8px; font-size: 12.5px; margin-bottom: 7px; }
+
+  /* --- cover & closing ----------------------------------------------------- */
+  /* One field for both brands: AIRuntime's deep space, lit by the MAX gradient, with the
+     product where the two meet. The background is the same bg-cover.jpg the PowerPoint
+     cover uses, so both formats open - and close - on the identical slide. */
+  .cover {
+    padding: 0; color: #fff;
+    background: #05070f url("bg-cover.jpg") center / cover no-repeat;
+  }
+  .cover-copy {
+    position: absolute; left: 72px; top: 0; bottom: 0; width: 520px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .cover h1 { margin-top: 4px; font-size: 88px; line-height: .98; letter-spacing: -.045em; color: #fff; }
+  .cover .lead { margin-top: 22px; max-width: 500px; font-size: 21px; line-height: 1.45; color: rgba(234,241,255,.8); }
+  .cover .eyebrow { color: #8ec4ff; }
+  .cover .foot-brand, .cover .foot-n { color: rgba(234,241,255,.5); }
+
+  .cover-meta { margin: 46px 0 0; display: flex; gap: 60px; }
+  .cover-meta dt { margin-bottom: 8px; font-size: 11.5px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; color: rgba(234,241,255,.5); }
+  .cover-meta dd { margin: 0; font-size: 17px; font-weight: 700; color: #fff; }
+  .cover-meta dd + dd { margin-top: 4px; font-size: 13.5px; font-weight: 500; color: rgba(234,241,255,.7); }
+  /* Still to be filled in: shaped like a form field so it cannot pass for finished copy. */
+  .cover-meta .fill { color: rgba(234,241,255,.6); font-weight: 600; border-bottom: 1px dashed rgba(234,241,255,.35); padding-bottom: 2px; display: inline-block; }
+
+  /* The one-message story, drawn as the chat it happens in: the owner's message, the
+     bot's answer with the button, and the storefront that button opens. */
+  /* The bot's answer sits over the phone's empty lower half, in front of it - the order
+     the story reads in. */
+  .hero-phone { position: absolute; left: 912px; top: 76px; --pw: 290px; z-index: 1; }
+  .bubble, .reply { z-index: 2; }
+  .bubble-label {
+    position: absolute; left: 614px; top: 106px;
+    font-size: 11px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase;
+    color: rgba(234,241,255,.55);
+  }
+  .bubble {
+    position: absolute; left: 614px; top: 132px; width: 272px;
+    padding: 14px 17px; border-radius: 20px 20px 5px 20px;
+    background: linear-gradient(115deg, var(--max-blue), var(--max-violet));
+    font-size: 14.5px; line-height: 1.42; color: #fff;
+    box-shadow: 0 20px 44px -18px rgba(0,50,160,.85);
+  }
+  .reply {
+    position: absolute; left: 640px; top: 404px; width: 300px;
+    padding: 16px 18px 16px; border-radius: 20px 20px 20px 5px;
+    background: #fff; color: var(--ink);
+    box-shadow: 0 28px 60px -20px rgba(0,0,0,.85);
+  }
+  .reply-head { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 750; }
+  .reply-ok {
+    width: 22px; height: 22px; border-radius: 50%; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #1f8a55; color: #fff; font-size: 13px; font-weight: 800;
+  }
+  .reply p { margin-top: 6px; font-size: 13.5px; line-height: 1.4; color: var(--ink-2); }
+  .reply-btn {
+    margin-top: 12px; padding: 9px 0; border-radius: 11px; text-align: center;
+    background: var(--max-blue); color: #fff; font-size: 14px; font-weight: 700;
+  }
+
+  /* Closing slide: the way in is a camera, not a URL someone has to retype. */
+  /* Wider than the cover's column: the headline is two lines at this width, four at 520px
+     - and four lines push the links into the footer. */
+  .closing .cover-copy { width: 720px; }
+  .closing h1 { font-size: 62px; line-height: 1.04; letter-spacing: -.035em; }
+  .closing .lead { max-width: 580px; font-size: 19px; }
+  .links { margin: 40px 0 0; display: grid; grid-template-columns: 168px 1fr; gap: 11px 18px; align-items: baseline; }
+  .links dt { font-size: 11.5px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; color: rgba(234,241,255,.5); }
+  .links dd { margin: 0; font-size: 17px; font-weight: 650; color: #fff; }
+  .qr-card {
+    position: absolute; left: 862px; top: 160px; width: 324px;
+    padding: 30px 30px 28px; border-radius: 28px; text-align: center;
+    background: #fff; color: var(--ink);
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.2);
+  }
+  .qr-card img { display: block; width: 236px; height: 236px; margin: 0 auto; image-rendering: pixelated; }
+  .qr-card b { display: block; margin-top: 20px; font-size: 19px; font-weight: 750; letter-spacing: -.01em; }
+  .qr-card span { display: block; margin-top: 5px; font-size: 14px; line-height: 1.4; color: var(--ink-2); }
+
+  /* --- lockup -------------------------------------------------------------- */
+  .lockup { display: inline-flex; align-items: center; gap: 14px; }
+  .lockup .x { font-size: 19px; font-weight: 300; color: rgba(255,255,255,.62); }
+  .wordmark { display: inline-flex; align-items: center; gap: 9px; font-size: 19px; font-weight: 800; letter-spacing: .04em; color: #fff; }
+  .maxmark { display: inline-flex; align-items: center; gap: 8px; font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: #fff; }
+  .maxmark img { width: 32px; height: 32px; display: block; }
+
+  /* --- criterion slides ---------------------------------------------------- */
+  /* One slide per scoring criterion. Every numbered block answers one line of the jury's
+     checklist, in the checklist's own order, so a criterion can be scored from its slide
+     alone. */
+  .crit-tag { display: inline-block; margin-left: 4px; padding: 3px 10px; border-radius: 999px; background: rgba(0,119,255,.1); color: var(--max-blue); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+  .cosmos .crit-tag { background: rgba(142,196,255,.15); color: #8ec4ff; }
+  .slide-head.tight { margin-bottom: 14px; }
+  .slide-head.tight h2 { font-size: 32px; }
+  .slide-head.tight p { font-size: 15px; }
+
+  .q { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 15px; padding: 12px 14px; min-width: 0; }
+  .q.accent { background: linear-gradient(140deg, rgba(0,119,255,.08), rgba(123,44,255,.08)); border-color: rgba(0,119,255,.24); }
+  .q.plain { background: #fff; }
+  .q-h { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 7px; }
+  .q-n { flex: none; width: 21px; height: 21px; border-radius: 7px; background: var(--grad); color: #fff; font-size: 11.5px; font-weight: 800; display: grid; place-items: center; }
+  .q-t { padding-top: 2px; font-size: 10.8px; font-weight: 780; letter-spacing: .06em; text-transform: uppercase; line-height: 1.3; color: var(--ink-3); }
+  .q p { font-size: 13.4px; line-height: 1.42; }
+  .q li { font-size: 13.4px; line-height: 1.4; margin-bottom: 4px; }
+  .q li::before { top: 7px; }
+  .q strong { color: var(--ink); }
+  .cosmos .q { background: rgba(255,255,255,.055); border-color: rgba(255,255,255,.13); }
+  .cosmos .q.accent { background: linear-gradient(140deg, rgba(35,136,255,.16), rgba(124,108,255,.14)); border-color: rgba(127,182,255,.3); }
+  .cosmos .q-t { color: rgba(234,241,255,.56); }
+  .cosmos .q strong { color: #fff; }
+
+  .g { display: grid; gap: 10px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g5 { grid-template-columns: repeat(5, 1fr); }
+
+  /* Problem -> mechanic -> result chains. */
+  .chain { display: grid; align-items: stretch; }
+  .chain .node { background: #fff; border: 1px solid var(--line); border-radius: 13px; padding: 10px 12px; }
+  .chain .node b { display: block; margin-bottom: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--max-blue); }
+  .chain .node span { display: block; font-size: 13px; line-height: 1.38; color: var(--ink); }
+  .chain .ar { display: grid; place-items: center; font-size: 17px; color: var(--ink-3); }
+  .chain.big .node { padding: 16px 18px; border-radius: 16px; }
+  .chain.big .node span { font-size: 15px; line-height: 1.45; color: var(--ink-2); }
+  .chain.big .node b { font-size: 12px; margin-bottom: 8px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chips span { padding: 4px 9px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-size: 12.3px; color: var(--ink); }
+  .cosmos .chips span { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); color: #eaf1ff; }
+  .chips.soft span { background: transparent; border-style: dashed; color: var(--ink-3); }
+  .cosmos .chips.soft span { color: rgba(234,241,255,.6); }
+
+  /* Mini comparison / checklist tables. */
+  .mini { width: 100%; border-collapse: collapse; }
+  .mini th, .mini td { padding: 5px 7px; border-bottom: 1px solid var(--line); font-size: 12.3px; line-height: 1.3; text-align: left; vertical-align: top; color: var(--ink-2); }
+  .mini th { font-size: 10.5px; font-weight: 780; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+  .mini td:first-child { font-weight: 650; color: var(--ink); }
+  .mini .ours { background: rgba(0,119,255,.08); color: var(--ink); font-weight: 650; }
+  .mini tr:last-child td { border-bottom: 0; }
+  .ok { color: var(--good); font-weight: 800; }
+
+  /* Gantt: twelve months, one row per replication step. */
+  .gantt { display: grid; grid-template-columns: 188px repeat(12, 1fr); gap: 6px 3px; align-items: center; }
+  .gantt .m { font-size: 10.5px; font-weight: 750; text-align: center; color: rgba(234,241,255,.5); }
+  .gantt .lbl { font-size: 12.5px; font-weight: 650; line-height: 1.25; color: #fff; }
+  .gantt .lbl small { display: block; font-size: 11px; font-weight: 500; color: rgba(234,241,255,.6); }
+  .gantt .bar { height: 26px; border-radius: 7px; display: flex; align-items: center; padding: 0 9px; font-size: 11.3px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; }
+  .bar.b1 { background: linear-gradient(120deg, #19c7a0, #0e9f7e); }
+  .bar.b2 { background: linear-gradient(120deg, #0077ff, #3a8dff); }
+  .bar.b3 { background: linear-gradient(120deg, #7b2cff, #9a5cff); }
+  .bar.b4 { background: linear-gradient(120deg, #ff2d87, #ff5fa2); }
+  .gantt .gate { font-size: 10.5px; color: #ffd166; font-weight: 800; }
+
+  /* Risk matrix: likelihood x impact. */
+  .risk { display: grid; grid-template-columns: 16px 1fr 1fr; grid-template-rows: 1fr 1fr 16px; gap: 5px; }
+  .risk .cell { border-radius: 10px; padding: 7px 9px; font-size: 11.8px; line-height: 1.3; color: #eaf1ff; }
+  .risk .cell b { display: block; font-size: 12px; color: #fff; }
+  .cell.hi { background: rgba(255,45,135,.22); border: 1px solid rgba(255,45,135,.4); }
+  .cell.mid { background: rgba(255,190,60,.16); border: 1px solid rgba(255,190,60,.35); }
+  .cell.lo { background: rgba(92,230,176,.12); border: 1px solid rgba(92,230,176,.3); }
+  .risk .ax { font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: rgba(234,241,255,.5); display: grid; place-items: center; }
+  .risk .ax.y { writing-mode: vertical-rl; transform: rotate(180deg); }
+
+  /* Scenario steps with where each happens. */
+  .steps7 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+  .steps7 > div { background: #fff; border: 1px solid var(--line); border-radius: 13px; padding: 10px 11px; }
+  .steps7 .sn { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: var(--grad); color: #fff; font-size: 11.5px; font-weight: 800; }
+  .steps7 p { margin-top: 7px; font-size: 12.8px; line-height: 1.35; color: var(--ink); }
+  .where { display: inline-block; margin-top: 7px; padding: 2px 7px; border-radius: 6px; font-size: 10.5px; font-weight: 750; }
+  .w-chat { background: rgba(31,138,85,.12); color: var(--good); }
+  .w-app { background: rgba(0,119,255,.11); color: var(--max-blue); }
+  .w-max { background: rgba(123,44,255,.11); color: var(--max-violet); }
+
+  /* State machine. */
+  .sm { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .sm span { padding: 5px 10px; border-radius: 9px; background: #fff; border: 1px solid var(--line); font-size: 12.5px; font-weight: 650; color: var(--ink); }
+  .sm i { font-style: normal; color: var(--ink-3); font-size: 13px; }
+  .sm .s-new { border-color: rgba(0,119,255,.4); color: var(--max-blue); }
+  .sm .s-ok { border-color: rgba(31,138,85,.4); color: var(--good); }
+  .sm .s-no { color: var(--ink-3); }
+
+  /* Customer journey strip. */
+  .cjm { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .cjm .phone { --pw: 118px; }
+  .cjm .cap { margin-top: 7px; text-align: center; font-size: 12px; line-height: 1.3; color: var(--ink-2); }
+  .cjm .cap b { display: block; font-size: 12.5px; color: var(--ink); }
+  .cjm .who { grid-column: span 3; font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--max-blue); border-bottom: 1.5px solid rgba(0,119,255,.25); padding-bottom: 4px; }
+
+  .navrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .navrow span { padding: 5px 10px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12.5px; color: var(--ink); }
+  .navrow b { margin-right: 6px; color: var(--max-blue); font-variant-numeric: tabular-nums; }
+
+  .bonus { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+  .bonus > div { padding: 8px 10px; border-radius: 11px; background: #fff; border: 1px solid rgba(0,119,255,.2); }
+  .bonus code { display: block; font-size: 11.5px; font-weight: 700; color: var(--max-blue); }
+  .bonus span { display: block; margin-top: 3px; font-size: 11.8px; line-height: 1.3; color: var(--ink-2); }
+
+  .mods { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12.3px; line-height: 1.35; }
+  .mods code { color: #8ec4ff; font-size: 11.8px; }
+  .mods span { color: rgba(234,241,255,.74); }
+
+  .src-strip { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-3); }
+  .src-strip b { color: var(--ink-2); }
+
+  /* Cover: three storefronts, three looks - the product's promise before a word is read. */
+  .roomy .q { padding: 16px 18px; }
+  .roomy .q p, .roomy .q li { font-size: 15px; line-height: 1.46; }
+  .roomy .q li { margin-bottom: 7px; }
+  .roomy .mini th, .roomy .mini td { padding: 7px 8px; font-size: 13.6px; }
+  .roomy .q-t { font-size: 11.5px; }
+  .fan .phone { position: absolute; }
+  .fan .p1 { left: 690px; top: 150px; --pw: 226px; transform: rotate(-7deg); z-index: 1; }
+  .fan .p2 { left: 1000px; top: 150px; --pw: 226px; transform: rotate(7deg); z-index: 1; }
+  .fan .p3 { left: 832px; top: 84px; --pw: 262px; z-index: 2; }
+</style>
+</head>
+<body>
+
+<!-- Reusable defs: the AIRuntime mark, drawn once and referenced by <use>. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="ar-l" x1="110" y1="430" x2="280" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C7B8FF" stop-opacity=".9"/><stop offset=".44" stop-color="#8BDFFF" stop-opacity=".96"/><stop offset="1" stop-color="#1D8CFF" stop-opacity=".88"/>
+    </linearGradient>
+    <linearGradient id="ar-r" x1="238" y1="76" x2="424" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEFBFF" stop-opacity=".96"/><stop offset=".43" stop-color="#50DBE5" stop-opacity=".92"/><stop offset="1" stop-color="#2388FF" stop-opacity=".9"/>
+    </linearGradient>
+    <linearGradient id="ar-c" x1="146" y1="330" x2="370" y2="258" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CFC6FF" stop-opacity=".8"/><stop offset=".55" stop-color="#EAF9FF" stop-opacity=".88"/><stop offset="1" stop-color="#14B8D7" stop-opacity=".78"/>
+    </linearGradient>
+    <g id="ar-mark">
+      <path d="M97 404c52-154 88-250 126-297 29-36 63-43 93-29 42 19 77 81 107 183 18 59 28 109 30 132 4 34-16 57-43 57-18 0-32-10-43-31-47-91-91-141-132-151-48-12-91 29-129 122-5 12-9 18-9 14Z" fill="url(#ar-l)" opacity=".88"/>
+      <path d="M217 109c29-36 63-45 96-31 41 18 78 81 110 183 18 59 28 109 30 132 3 31-13 53-38 56-20 2-36-9-48-31-18-36-36-66-54-90-35-159-69-232-96-219Z" fill="url(#ar-r)" opacity=".8"/>
+      <path d="M83 407c55-78 107-119 158-126 58-7 112 31 166 115-12 34-36 47-65 27-40-29-74-45-103-47-34-3-70 14-109 51-26 24-52 21-47-20Z" fill="url(#ar-c)" opacity=".9"/>
+    </g>
+    <g id="steps-corner">
+      <rect x="0" y="0" width="46" height="46" fill="currentColor" opacity=".85"/>
+      <rect x="46" y="46" width="46" height="46" fill="currentColor" opacity=".55"/>
+      <rect x="92" y="0" width="46" height="46" fill="currentColor" opacity=".3"/>
+      <rect x="92" y="92" width="46" height="46" fill="currentColor" opacity=".34"/>
+      <rect x="138" y="46" width="46" height="46" fill="currentColor" opacity=".18"/>
+    </g>
+  </defs>
+</svg>
+
+<!-- ======================= 1. SERVICE SLIDE ============================== -->
+<!-- Values marked data-secret are placeholders in git and filled in by build-pdf.py from the
+     environment when the PDF for the jury is printed: the brief wants working tokens on this
+     slide, and the repository must never hold them. -->
+<section class="slide">
+  <svg class="steps-tr" width="184" height="138" viewBox="0 0 184 138" style="color:#0077ff; opacity:.10"><use href="#steps-corner"/></svg>
+  <div class="slide-head">
+    <span class="eyebrow">Слайд 1 · служебный · не оценивается</span>
+    <h2>Техническая информация для проверки</h2>
+  </div>
+  <div class="body">
+    <div class="cols c2">
+      <div>
+        <dl class="kv" style="grid-template-columns:172px 1fr; gap:6px 14px; font-size:14.5px;">
+          <dt>Чат-бот в MAX</dt>
+          <dd><code>https://max.ru/t403_hakaton_max_bot</code><br /><span class="small">«Хакатон МАХ 403», user_id 395683755</span></dd>
+          <dt>Мини-приложение</dt>
+          <dd><code>https://airuntime.ru/max</code><br /><span class="small">Подключено к боту: кнопка «Открыть AIRuntime» и ссылки <code>max.ru/t403_hakaton_max_bot?startapp=&lt;slug&gt;</code></span></dd>
+          <dt>Git-репозиторий</dt>
+          <dd><code>github.com/airuntime-ru/airuntime</code></dd>
+          <dt>Commit hash</dt>
+          <dd><code>eadc752d7bfc2ec65e96972c4c60e3be6547a8ab</code><br /><span class="small">ветка <code>main</code> · короткий <code>eadc752</code></span></dd>
+          <dt>Собственный API</dt>
+          <dd>Не используется<br /><span class="small">Эндпоинты <code>/api/v1/max/*</code> обслуживают только мини-приложение</span></dd>
+          <dt>Тестовые учётки</dt>
+          <dd>Не нужны: вход — аккаунт MAX<br /><span class="small">Для роли клиента — второй аккаунт MAX</span></dd>
+        </dl>
+        <div class="card" style="margin-top:12px; padding:13px 17px;">
+          <h3 style="font-size:16px; margin-bottom:6px;">Запуск и переменные окружения</h3>
+          <p class="small" style="line-height:1.55;">
+            Все компоненты одной командой: <code>docker compose up --build</code><br />
+            <code>MAX_BOT_TOKEN</code> = <code data-secret="MAX_BOT_TOKEN">в PDF для жюри</code><br />
+            <code>MAX_BOT_USERNAME</code> = <code>t403_hakaton_max_bot</code> · <code>MAX_WEBHOOK_SECRET</code> — любая строка<br />
+            <code>OPENAI_API_KEY</code> = <span data-secret="OPENAI_API_KEY">по запросу; без ключа сервис собирается шаблоном</span><br />
+            Остальное — <code>.env.example</code>, пункты README по заданию — раздел «Для проверки»
+          </p>
+        </div>
+      </div>
+      <div class="card topline">
+        <h3>Порядок прохождения основного сценария</h3>
+        <ul style="margin-top:10px;">
+          <li>Открыть <code>max.ru/t403_hakaton_max_bot</code>, нажать «Начать», затем «Открыть AIRuntime»</li>
+          <li>Описать бизнес <strong>одним сообщением</strong>: «Автосервис на Лесной. Диагностика 1500, замена масла 900, шиномонтаж 2400. Работаем с 9 до 20» — и нажать «Собрать витрину»</li>
+          <li>Когда индикатор сборки сменится обложкой, витрина опубликована: «Поделиться», «Открыть», ссылка</li>
+          <li>Открыть ссылку <strong>со второго аккаунта MAX</strong> — это роль клиента</li>
+          <li>Выбрать услугу и время, указать имя, нажать «Записаться»</li>
+          <li>Владельцу в чат с ботом придёт заявка с кнопкой «Открыть заявки»</li>
+          <li>Нажать «Принять» — клиенту придёт ответ в MAX</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span>
+    <span class="foot-n">01</span>
+  </div>
+</section>
+
+<!-- ======================= 2. COVER ====================================== -->
+<section class="slide cover">
+  <div class="cover-copy">
+    <div class="lockup" style="margin-bottom:34px;">
+      <span class="wordmark">
+        <svg viewBox="55 45 402 402" width="32" height="32" aria-hidden="true"><use href="#ar-mark"/></svg>
+        AIRUNTIME
+      </span>
+      <span class="x">×</span>
+      <span class="maxmark"><img src="mark-max.png" alt="" width="32" height="32" />max</span>
+    </div>
+
+    <span class="eyebrow">Трек «Эффективный бизнес»</span>
+    <h1>AIRuntime</h1>
+    <p class="lead">Витрина с онлайн-записью и заказами в MAX из одного сообщения — со своим дизайном, без разработчика и без ожидания.</p>
+
+    <dl class="cover-meta">
+      <div>
+        <dt>Команда</dt>
+        <dd>Тоталисты</dd>
+        <dd>Авдеев Фёдор<br />Дымников Михаил<br />Цейтлин Михаил</dd>
+      </div>
+      <div>
+        <dt>Решение</dt>
+        <dd>Чат-бот + мини-приложение</dd>
+        <dd>@t403_hakaton_max_bot</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="fan" aria-hidden="true">
+    <div class="phone dark p1"><img src="shot-gallery-coffee.png" alt="" /></div>
+    <div class="phone dark p2"><img src="shot-gallery-barber.png" alt="" /></div>
+    <div class="phone dark p3"><img src="shot-storefront.png" alt="Витрина автосервиса в мини-приложении MAX" /></div>
+  </div>
+
+  <div class="foot">
+    <span class="foot-brand">Хакатон MAX · 2026</span>
+    <span class="foot-n">02</span>
+  </div>
+</section>
+
+<!-- ======================= 3. PRESENTATION: SUMMARY ======================= -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Продуктовая оценка · Качество презентации <span class="crit-tag">5%</span></span>
+    <h2>AIRuntime за 30 секунд</h2>
+    <p>Предприниматель описывает бизнес одним сообщением — и получает в MAX витрину со своим дизайном, где клиенты записываются и заказывают, а заявки приходят ему в чат.</p>
+  </div>
+  <div class="body" style="justify-content:flex-start;">
+    <div class="chain big" style="grid-template-columns:1fr 30px 1fr 30px 1fr;">
+      <div class="node"><b>Проблема</b><span>Микробизнес ведёт запись и заказы вручную в личных сообщениях: ночные заявки теряются, прайс пересказывается каждому, а онлайн-запись требует настройки сервиса или разработчика.</span></div>
+      <div class="ar">→</div>
+      <div class="node"><b>Решение</b><span>Чат-бот и мини-приложение в MAX: описание бизнеса → витрина с услугами, ценами, временем и своим дизайном → запись или заказ клиента → заявка владельцу в чат → ответ клиенту.</span></div>
+      <div class="ar">→</div>
+      <div class="node"><b>Результат</b><span>Клиент записывается сам за два касания, не выходя из MAX; у владельца — одна кнопка «Принять». Запуск без разработчика, сайта и настройки сервисов.</span></div>
+    </div>
+    <div class="cols c4" style="margin-top:16px; gap:12px;">
+      <div class="tile"><div class="value">1</div><div class="label">сообщение от владельца до опубликованной витрины</div></div>
+      <div class="tile"><div class="value">2</div><div class="label">касания клиента: выбрать услугу и время</div></div>
+      <div class="tile"><div class="value">8</div><div class="label">шрифтов и 6 видов каталога — дизайн под бренд, а не шаблон</div></div>
+      <div class="tile"><div class="value">87</div><div class="label">автотестов, включая подделку подписи и сквозной сценарий</div></div>
+    </div>
+    <div class="card plain" style="margin-top:16px; padding:13px 17px;">
+      <p style="font-size:14px;"><strong>Как читать:</strong> один слайд — один критерий оценки; пронумерованные блоки на слайде идут по пунктам этого критерия в порядке задания.</p>
+      <div class="navrow">
+        <span><b>04</b>Пользовательская ценность</span><span><b>05</b>UX/UI</span><span><b>06</b>Обоснованность</span><span><b>07</b>Масштабирование</span><span><b>08</b>Работоспособность</span><span><b>09</b>Интеграция и бонус MAX</span><span><b>10</b>Стабильность</span><span><b>11</b>Архитектура</span><span><b>12</b>Безопасность</span><span><b>13</b>Документация</span>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">03</span></div>
+</section>
+
+<!-- ======================= 4. USER VALUE ================================== -->
+<section class="slide">
+  <div class="slide-head tight">
+    <span class="eyebrow">Продуктовая оценка · Пользовательская ценность <span class="crit-tag">25%</span></span>
+    <h2>Кому и зачем это нужно</h2>
+  </div>
+  <div class="body" style="justify-content:flex-start; gap:10px;">
+    <div class="g g3">
+      <div class="q accent">
+        <div class="q-h"><span class="q-n">1</span><span class="q-t">Целевая аудитория и приоритетный сегмент</span></div>
+        <p><strong>Владельцы микробизнеса услуг с записью на время:</strong> 1–5 человек, без сайта и CRM, запись — в личных сообщениях. Пилотные ниши — автосервис, барбершоп, мастер маникюра. <strong>Не в фокусе:</strong> сети и франшизы — там решает головной офис.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">2</span><span class="q-t">Конкретная и актуальная потребность</span></div>
+        <p><strong>Владелец микросервиса</strong>, когда клиенты пишут в любое время, <strong>хочет</strong> принимать записи без ручного согласования каждой, <strong>но</strong> онлайн-запись требует платного сервиса с настройкой или разработки, <strong>поэтому</strong> ведёт запись вручную и теряет заявки.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">3</span><span class="q-t">Полезный результат для пользователя</span></div>
+        <ul>
+          <li><strong>Витрина с ценами и своим дизайном</strong> — из одного сообщения</li>
+          <li><strong>Запись и заказ круглосуточно</strong>, без переписки</li>
+          <li><strong>Заявка сразу в чат</strong>, ответ клиенту одной кнопкой</li>
+          <li><strong>Телефон клиента</strong> — из аккаунта MAX, без ввода</li>
+        </ul>
+      </div>
+    </div>
+    <div class="g" style="grid-template-columns:1.45fr 1fr;">
+      <div class="q">
+        <div class="q-h"><span class="q-n">4</span><span class="q-t">Преимущество перед текущим способом</span></div>
+        <table class="mini">
+          <thead><tr><th></th><th>Личные сообщения</th><th>Сервис записи / CRM</th><th>Сайт или бот на заказ</th><th class="ours">AIRuntime в MAX</th></tr></thead>
+          <tbody>
+            <tr><td>Запуск</td><td>уже есть</td><td>регистрация и настройка</td><td>подрядчик, недели</td><td class="ours">одно сообщение</td></tr>
+            <tr><td>Внешний вид</td><td>—</td><td>типовой шаблон</td><td>свой, но дорого</td><td class="ours">свой дизайн сразу</td></tr>
+            <tr><td>Где клиент</td><td>в переписке</td><td>на стороннем сайте</td><td>на сайте или в боте</td><td class="ours">внутри MAX, по ссылке или QR</td></tr>
+            <tr><td>Заявка ночью</td><td>ждёт до утра</td><td>принимается</td><td>принимается</td><td class="ours">принимается и сразу в чат</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">5</span><span class="q-t">Чем подтверждена востребованность</span></div>
+        <ul>
+          <li><span class="pill pill-fact" style="padding:1px 7px; font-size:11px;">Факт</span> 6,6 млн субъектов МСП, 81,8% всех юрлиц и ИП, +3,5% за год — ФНС, июль 2026</li>
+          <li><span class="pill pill-fact" style="padding:1px 7px; font-size:11px;">Факт</span> Задание трека прямо называет запись на услугу и оформление заказа «непосредственно в MAX»</li>
+          <li><span class="pill pill-guess" style="padding:1px 7px; font-size:11px;">Допущение</span> доля бизнесов, ведущих запись вручную и считающих это проблемой, — проверяется пилотом (слайд 07)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">04</span></div>
+</section>
+
+<!-- ======================= 5. UX / UI ====================================== -->
+<section class="slide">
+  <div class="slide-head tight">
+    <span class="eyebrow">Продуктовая оценка · UX/UI и удобство взаимодействия <span class="crit-tag">20%</span></span>
+    <h2>Путь без лишних шагов — на телефоне</h2>
+    <p>Мини-приложение MAX открывается только на телефоне, поэтому всё сделано mobile-first и проверено от 360 px. Ниже — реальные экраны основного сценария на демо-данных: «Автосервис на Лесной» и клиенты вымышлены.</p>
+  </div>
+  <div class="body" style="justify-content:flex-start;">
+    <div class="cjm">
+      <div class="who">Владелец</div><div class="who">Клиент</div>
+      <div><div class="phone"><img src="shot-owner-compose.png" alt="Описание бизнеса" /></div><div class="cap"><b>1. Описывает</b>одним сообщением</div></div>
+      <div><div class="phone"><img src="shot-owner-building.png" alt="Сборка витрины" /></div><div class="cap"><b>2. Ждёт сборку</b>видит прогресс</div></div>
+      <div><div class="phone"><img src="shot-owner-ready.png" alt="Готовая витрина" /></div><div class="cap"><b>3. Делится</b>ссылкой в чаты MAX</div></div>
+      <div><div class="phone dark"><img src="shot-storefront.png" alt="Витрина" /></div><div class="cap"><b>4. Выбирает</b>услугу и цену</div></div>
+      <div><div class="phone dark"><img src="shot-booking.png" alt="Время и контакты" /></div><div class="cap"><b>5. Время</b>имя уже подставлено</div></div>
+      <div><div class="phone dark"><img src="shot-customer-done.png" alt="Заявка принята" /></div><div class="cap"><b>6. Готово</b>ответ придёт в MAX</div></div>
+    </div>
+    <div class="g g5" style="margin-top:12px;">
+      <div class="q"><div class="q-h"><span class="q-n">1</span><span class="q-t">Путь = приоритетный сценарий</span></div><p>На экранах ровно основной сценарий: описание → витрина → запись → заявка → ответ. Ничего постороннего на пути нет.</p></div>
+      <div class="q"><div class="q-h"><span class="q-n">2</span><span class="q-t">Понятно без пояснений</span></div><p>Готовые примеры описаний; время появляется после выбора услуги; над кнопкой видно, что именно бронируется.</p></div>
+      <div class="q"><div class="q-h"><span class="q-n">3</span><span class="q-t">Действия легко найти</span></div><p>Одна главная кнопка на экране, закреплена снизу. У владельца — две вкладки: «Заявки» и «Витрина».</p></div>
+      <div class="q"><div class="q-h"><span class="q-n">4</span><span class="q-t">Загрузка, результат, ошибка</span></div><p>Скелетоны и индикатор сборки; «Витрина готова», «Заявка принята»; ошибка — понятный текст и «Повторить».</p></div>
+      <div class="q"><div class="q-h"><span class="q-n">5</span><span class="q-t">Нет лишних шагов и тупиков</span></div><p>Клиенту — два касания: имя из профиля, телефон одной кнопкой. Каждое сообщение бота открывает нужный экран.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">05</span></div>
+</section>
+
+<!-- ======================= 6. SOUNDNESS ==================================== -->
+<section class="slide">
+  <div class="slide-head tight">
+    <span class="eyebrow">Продуктовая оценка · Обоснованность и целостность <span class="crit-tag">15%</span></span>
+    <h2>Почему продукт устроен именно так</h2>
+  </div>
+  <div class="body" style="justify-content:flex-start; gap:10px;">
+    <div class="g" style="grid-template-columns:1fr 2.2fr;">
+      <div class="q accent">
+        <div class="q-h"><span class="q-n">1</span><span class="q-t">Соответствует задаче и проблеме</span></div>
+        <p>Задание называет ценностью взаимодействие с клиентами — оформление заказа, запись на услугу, бронирование непосредственно в MAX. AIRuntime делает именно запись и заказ, целиком внутри MAX.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">2</span><span class="q-t">Связь проблемы, механики и результата</span></div>
+        <div class="chain" style="grid-template-columns:1fr 20px 1fr 20px 1fr 20px 1fr;">
+          <div class="node"><b>Проблема</b><span>Запись вручную в личке, заявки теряются</span></div><div class="ar">→</div>
+          <div class="node"><b>Механика</b><span>Витрина из описания, запись в MAX, заявка в чат</span></div><div class="ar">→</div>
+          <div class="node"><b>Результат</b><span>Клиент записывается сам, владелец отвечает кнопкой</span></div><div class="ar">→</div>
+          <div class="node"><b>Метрика</b><span>Доля доведённых записей, время до ответа, заявки вне рабочих часов</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="g" style="grid-template-columns:1fr 1fr 1.7fr;">
+      <div class="q">
+        <div class="q-h"><span class="q-n">3</span><span class="q-t">Решения и допущения аргументированы</span></div>
+        <ul>
+          <li><strong>Витрина — данные, а не код:</strong> ответ модели проверяется схемой и не может сломать страницу</li>
+          <li><strong>Бот — вход и уведомления, мини-апп — работа:</strong> так рекомендует задание</li>
+          <li><strong>Дизайн из закрытого словаря:</strong> разнообразно и безопасно</li>
+        </ul>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">4</span><span class="q-t">Функции образуют единый продукт</span></div>
+        <div class="sm">
+          <span>Описание</span><i>→</i><span>Витрина</span><i>→</i><span>Запись / заказ</span><i>→</i><span>Заявка в чат</span><i>→</i><span class="s-ok">Решение</span><i>→</i><span>Ответ клиенту</span>
+        </div>
+        <p style="margin-top:8px; font-size:12.8px;">Правка словами, «Поделиться», скрыть и удалить — части того же цикла, а не отдельные модули.</p>
+      </div>
+      <div class="q mos">
+        <div class="q-h"><span class="q-n">5</span><span class="q-t">Реалистично в рамках MVP — MoSCoW</span></div>
+        <div class="g" style="grid-template-columns:repeat(4,1fr); gap:7px;">
+          <div><span class="tag must">MUST ✓</span><ul style="margin-top:6px;"><li>Витрина из описания</li><li>Запись в MAX</li><li>Заявка в чат</li><li>Ответ клиенту</li></ul></div>
+          <div><span class="tag should">SHOULD ✓</span><ul style="margin-top:6px;"><li>Свой дизайн</li><li>Корзина заказа</li><li>Правка словами</li><li>Телефон из MAX</li></ul></div>
+          <div><span class="tag could">COULD</span><ul style="margin-top:6px;"><li>Напоминания</li><li>Календарь занятости</li><li>Аренда с залогом</li></ul></div>
+          <div><span class="tag wont">WON'T</span><ul style="margin-top:6px;"><li>Онлайн-оплата</li><li>Сотрудники и роли</li><li>Интеграции с CRM</li></ul></div>
+        </div>
+      </div>
+    </div>
+    <div class="card plain" style="padding:10px 16px;">
+      <p style="font-size:13.5px;"><strong>Гипотеза пилота:</strong> если владелец принимает записи через витрину в MAX, доля заявок, дошедших до подтверждения, вырастет, а время на переписку сократится. <strong>Успех</strong> — владелец не возвращается к ручной записи, и хотя бы одна заявка вне рабочих часов подтверждена.</p>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">06</span></div>
+</section>
+
+<!-- ======================= 7. SCALING ====================================== -->
+<section class="slide cosmos">
+  <div class="slide-head tight">
+    <span class="eyebrow">Продуктовая оценка · Потенциал масштабирования <span class="crit-tag">35%</span></span>
+    <h2>Одна механика — много ниш и регионов</h2>
+  </div>
+  <div class="body" style="justify-content:flex-start; gap:10px;">
+    <div class="g g3">
+      <div class="q">
+        <div class="q-h"><span class="q-n">1</span><span class="q-t">Контексты помимо исходного кейса</span></div>
+        <div class="chips"><span>барбершоп</span><span>маникюр</span><span>автосервис</span><span>репетитор</span><span>студии йоги</span><span>фотограф</span><span>груминг</span><span>кофейня</span><span>пекарня</span><span>кондитер</span><span>цветы</span><span>клининг</span><span>юрист</span></div>
+        <p style="margin-top:7px; font-size:12.8px;">Регионы: Санкт-Петербург → Ленинградская область → другие регионы через центры «Мой бизнес»; организации — сети барбершопов, автосервисов, студий.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">2</span><span class="q-t">Направления = возможности продукта</span></div>
+        <p><strong>Три типа сервиса уже работают:</strong> запись на время, заказ с корзиной, заявка. Новая ниша — новое описание, а не новая разработка.</p>
+        <p style="margin-top:6px; font-size:12px; color:rgba(234,241,255,.55);">Не в MVP, следующие типы:</p>
+        <div class="chips soft" style="margin-top:4px;"><span>аренда с залогом</span><span>билеты</span><span>абонементы</span><span>предоплата</span></div>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">3</span><span class="q-t">Условия адаптации</span></div>
+        <ul>
+          <li><strong>Данные:</strong> прайс и описание владельца, часы и праздники региона</li>
+          <li><strong>Интеграции:</strong> календарь, оплата, склад — после пилота</li>
+          <li><strong>Ресурсы:</strong> ключ LLM, домен с HTTPS, сопровождение</li>
+          <li><strong>Продукт:</strong> роли «сеть → филиал → мастер», модерация</li>
+        </ul>
+      </div>
+    </div>
+    <div class="g" style="grid-template-columns:.95fr 2.05fr;">
+      <div class="q">
+        <div class="q-h"><span class="q-n">4</span><span class="q-t">Ограничения и риски</span></div>
+        <div class="risk" style="height:168px;">
+          <div class="ax y" style="grid-row:1 / 3;">влияние →</div>
+          <div class="cell mid"><b>Длинный цикл сетей</b>решает головной офис — сети после пилота</div>
+          <div class="cell hi"><b>Привычка к личке</b>отбираем тех, кто сам жалуется на переписку</div>
+          <div class="cell lo"><b>Лимит MAX API</b>30 запросов/с: в пилоте далеко, при росте — очередь отправки</div>
+          <div class="cell mid"><b>Качество генерации</b>правка словами, шаблон без модели</div>
+          <div></div><div class="ax" style="grid-column:2 / 4;">вероятность →</div>
+        </div>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">5</span><span class="q-t">Порядок тиражирования — первые 12 месяцев</span></div>
+        <div class="gantt">
+          <div style="grid-row:1;"></div><div class="m">М1</div><div class="m">М2</div><div class="m">М3</div><div class="m">М4</div><div class="m">М5</div><div class="m">М6</div><div class="m">М7</div><div class="m">М8</div><div class="m">М9</div><div class="m">М10</div><div class="m">М11</div><div class="m">М12</div>
+          <div class="lbl" style="grid-row:2; grid-column:1;">Пилот<small>СПб, 5–10 владельцев услуг</small></div><div class="bar b1" style="grid-row:2; grid-column:2 / 3;">4 нед.</div><div class="gate" style="grid-row:2; grid-column:3 / 6;">◆ решение по метрикам</div>
+          <div class="lbl" style="grid-row:3; grid-column:1;">Соседние ниши<small>кафе, пекарни — тип «заказ»</small></div><div class="bar b2" style="grid-row:3; grid-column:3 / 6;">предзаказ и самовывоз</div>
+          <div class="lbl" style="grid-row:4; grid-column:1;">Сети услуг<small>роли «сеть → филиал»</small></div><div class="bar b3" style="grid-row:4; grid-column:5 / 10;">доработка ролей, филиалы</div>
+          <div class="lbl" style="grid-row:5; grid-column:1;">Регионы<small>через центры «Мой бизнес»</small></div><div class="bar b4" style="grid-row:5; grid-column:8 / 14;">обучение консультантов, модерация</div>
+        </div>
+        <p style="margin-top:7px; font-size:11.8px; color:rgba(234,241,255,.6);">Пилот: нед. 0 — отбор и базовая линия, 1–3 — работа, 4 — решение. Следующий шаг — только при выполненном критерии успеха (слайд 06).</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">07</span></div>
+</section>
+
+<!-- ======================= 8. WORKS END TO END ============================= -->
+<section class="slide">
+  <div class="slide-head tight">
+    <span class="eyebrow">Техническая оценка · Работоспособность и полнота функций <span class="crit-tag">30%</span></span>
+    <h2>Сценарий проходится целиком — прямо сейчас</h2>
+  </div>
+  <div class="body" style="justify-content:flex-start; gap:10px;">
+    <div class="q plain">
+      <div class="q-h"><span class="q-n">1</span><span class="q-t">Основной сценарий от начала до результата</span></div>
+      <div class="steps7">
+        <div><span class="sn">1</span><p>«Начать» в боте, затем «Открыть AIRuntime»</p><span class="where w-chat">чат с ботом</span></div>
+        <div><span class="sn">2</span><p>Описать бизнес одним сообщением</p><span class="where w-app">мини-приложение</span></div>
+        <div><span class="sn">3</span><p>«Собрать витрину» → обложка, ссылка, «Поделиться»</p><span class="where w-app">мини-приложение</span></div>
+        <div><span class="sn">4</span><p>Клиент открывает ссылку или QR</p><span class="where w-max">MAX, второй аккаунт</span></div>
+        <div><span class="sn">5</span><p>Выбрать услугу и время, «Записаться»</p><span class="where w-app">мини-приложение</span></div>
+        <div><span class="sn">6</span><p>Владельцу — «Новая заявка» с кнопкой</p><span class="where w-chat">чат с ботом</span></div>
+        <div><span class="sn">7</span><p>«Принять» → клиенту «Запись подтверждена»</p><span class="where w-chat">чат клиента</span></div>
+      </div>
+    </div>
+    <div class="g" style="grid-template-columns:1.6fr 1fr;">
+      <div class="q">
+        <div class="q-h"><span class="q-n">2</span><span class="q-t">Ключевые функции работают</span></div>
+        <table class="mini">
+          <thead><tr><th>Функция</th><th>Где в сценарии</th><th>Автотест</th></tr></thead>
+          <tbody>
+            <tr><td>Витрина из описания, сайта и файлов</td><td>шаги 2–3</td><td class="ok">✓</td></tr>
+            <tr><td>Запись с выбором времени</td><td>шаг 5</td><td class="ok">✓</td></tr>
+            <tr><td>Заказ с корзиной (включает владелец)</td><td>шаг 5</td><td class="ok">✓</td></tr>
+            <tr><td>Уведомления владельцу и клиенту</td><td>шаги 6–7</td><td class="ok">✓</td></tr>
+            <tr><td>Правка словами, скрыть, удалить</td><td>вкладка «Витрина»</td><td class="ok">✓</td></tr>
+            <tr><td>Телефон из аккаунта MAX (проверка подписи)</td><td>шаг 5</td><td class="ok">✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="g" style="grid-template-rows:auto 1fr;">
+        <div class="q">
+          <div class="q-h"><span class="q-n">3</span><span class="q-t">Проверки собственного API</span></div>
+          <p><strong>Не применимо:</strong> собственного API нет. Эндпоинты <code>/api/v1/max/*</code> обслуживают только мини-приложение.</p>
+        </div>
+        <div class="q accent" style="display:flex; gap:14px; align-items:center;">
+          <img src="qr-bot.png" alt="QR-код на бота" style="width:92px; height:92px; image-rendering:pixelated; border-radius:8px; background:#fff; padding:5px;" />
+          <p style="font-size:13.4px;"><strong>Проверить сейчас:</strong><br /><code>max.ru/t403_hakaton_max_bot</code><br />87 автотестов — <code>tests/test_max_platform.py</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">08</span></div>
+</section>
+
+<!-- ======================= 9. INTEGRATION + BONUS ========================== -->
+<section class="slide">
+  <div class="slide-head tight">
+    <span class="eyebrow">Техническая оценка · Корректность интеграции и обмена данными <span class="crit-tag">20%</span></span>
+    <h2>Как данные идут через MAX и обратно</h2>
+  </div>
+  <div class="body" style="justify-content:flex-start; gap:10px;">
+    <div class="q plain">
+      <div class="q-h"><span class="q-n">1</span><span class="q-t">Компоненты взаимодействуют последовательно</span></div>
+      <div class="chain" style="grid-template-columns:1fr 18px 1fr 18px 1fr 18px 1fr 18px 1fr 18px 1fr;">
+        <div class="node"><b>Мини-апп клиента</b><span>заявка + подписанный <code>initData</code></span></div><div class="ar">→</div>
+        <div class="node"><b>API</b><span>проверка подписи, услуга есть в витрине</span></div><div class="ar">→</div>
+        <div class="node"><b>PostgreSQL</b><span>заявка со статусом «новая»</span></div><div class="ar">→</div>
+        <div class="node"><b>MAX Bot API</b><span>сообщение владельцу с кнопкой <code>open_app</code></span></div><div class="ar">→</div>
+        <div class="node"><b>Кабинет</b><span>«Принять» → статус меняется</span></div><div class="ar">→</div>
+        <div class="node"><b>MAX Bot API</b><span>клиенту — «Запись подтверждена»</span></div>
+      </div>
+    </div>
+    <div class="g g3">
+      <div class="q">
+        <div class="q-h"><span class="q-n">2</span><span class="q-t">Данные и состояния предсказуемы</span></div>
+        <div class="sm"><span class="s-new">новая</span><i>→</i><span class="s-ok">принята</span><i>/</i><span class="s-no">отклонена</span><i>→</i><span>выполнена</span></div>
+        <div class="sm" style="margin-top:7px;"><span>витрина опубликована</span><i>⇄</i><span class="s-no">скрыта</span></div>
+        <p style="margin-top:7px; font-size:12.8px;">Каждый переход — одно действие владельца, у клиента — сообщение в MAX.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">3</span><span class="q-t">Внешние интеграции по заявленной логике</span></div>
+        <ul>
+          <li><strong>MAX Bot API</strong> — вебхук, сообщения, кнопки; форма сверена по OpenAPI-схеме MAX</li>
+          <li><strong>MAX Bridge</strong> — стартовые параметры, контакт, «Поделиться»</li>
+          <li><strong>LLM</strong> через шлюз, ответ проверяется схемой, без модели — шаблон</li>
+        </ul>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">4</span><span class="q-t">Контракт собственного API</span></div>
+        <p><strong>Не применимо:</strong> собственного API нет. Входящие данные MAX проверяются на границе: подпись <code>initData</code> и контакта, секрет вебхука.</p>
+      </div>
+    </div>
+    <div class="q accent">
+      <div class="q-h"><span class="q-n">+</span><span class="q-t">Платформенный бонус · возможности MAX сверх минимума, работают в основном сценарии</span></div>
+      <div class="bonus">
+        <div><code>requestContact()</code><span>телефон клиента одной кнопкой</span></div>
+        <div><code>shareMaxContent()</code><span>«Поделиться» витриной в чаты MAX</span></div>
+        <div><code>open_app + payload</code><span>сообщение бота открывает нужный экран</span></div>
+        <div><code>?startapp=slug</code><span>ссылка и QR сразу в витрину</span></div>
+        <div><code>BackButton</code><span>родная кнопка «Назад», подтверждение закрытия</span></div>
+        <div><code>HapticFeedback</code><span>отклик на ключевые действия</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">09</span></div>
+</section>
+
+<!-- ======================= 10. STABILITY =================================== -->
+<section class="slide">
+  <div class="slide-head tight">
+    <span class="eyebrow">Техническая оценка · Стабильность и обработка ошибок <span class="crit-tag">10%</span></span>
+    <h2>Ошибка не останавливает сценарий</h2>
+  </div>
+  <div class="body" style="justify-content:flex-start; gap:12px;">
+    <div class="g g2">
+      <div class="q">
+        <div class="q-h"><span class="q-n">1</span><span class="q-t">Стабильно при повторном прохождении</span></div>
+        <ul>
+          <li>Повторный сценарий — новая витрина со своим адресом, старые не затираются</li>
+          <li>Запрос к MAX API повторяется, только если не дошёл, — без дублей сообщений</li>
+          <li>Лимит — 10 витрин на владельца, дальше понятное сообщение, лишние удаляются кнопкой</li>
+        </ul>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">3</span><span class="q-t">Продолжить без перезапуска</span></div>
+        <ul>
+          <li>Нет сети — текст ошибки и «Повторить», введённое не теряется</li>
+          <li>Закрыть приложение во время сборки — MAX переспросит</li>
+          <li>Скрытая витрина — клиенту «не найдена», владельцу — предпросмотр</li>
+        </ul>
+      </div>
+    </div>
+    <div class="g" style="grid-template-columns:1.5fr 1fr;">
+      <div class="q">
+        <div class="q-h"><span class="q-n">2</span><span class="q-t">Некорректные действия обрабатываются</span></div>
+        <table class="mini">
+          <thead><tr><th>Действие</th><th>Реакция</th></tr></thead>
+          <tbody>
+            <tr><td>Описание короче 12 символов</td><td>кнопка неактивна, сервер тоже отклоняет — пустая витрина не создаётся</td></tr>
+            <tr><td>Запись без услуги, времени или имени</td><td>кнопка недоступна, под ней — что осталось выбрать</td></tr>
+            <tr><td>Заявка на услугу, которой нет в витрине</td><td>отказ сервера, заявка не создаётся</td></tr>
+            <tr><td>Чужие или просроченные параметры запуска</td><td>доступ закрыт, данные не отдаются</td></tr>
+            <tr><td>Модель ответила мусором или не ответила</td><td>до трёх попыток, затем шаблон из описания</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="q accent">
+        <div class="q-h"><span class="q-n">4</span><span class="q-t">Нет сбоев, тайм-аутов и задержек</span></div>
+        <ul>
+          <li>Вебхук всегда отвечает 200 и не ждёт модель — MAX не повторяет доставку</li>
+          <li>Долгая генерация идёт в мини-приложении с индикатором, а не в чате</li>
+          <li>На проде найдена и устранена причина обрывов: MTU сети Docker не совпадал с сетью сервера</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">10</span></div>
+</section>
+
+<!-- ======================= 11. ARCHITECTURE ================================ -->
+<section class="slide cosmos">
+  <div class="slide-head tight">
+    <span class="eyebrow">Техническая оценка · Техническая реализация и архитектура <span class="crit-tag">20%</span></span>
+    <h2>Просто по масштабу MVP, готово к росту</h2>
+  </div>
+  <div class="body" style="justify-content:flex-start; gap:10px;">
+    <div class="q">
+      <div class="q-h"><span class="q-n">2</span><span class="q-t">Состав компонентов, их роли и связи</span></div>
+      <svg viewBox="0 0 1150 188" style="width:100%; height:auto;" aria-label="Схема: MAX, бэкенд AIRuntime, инфраструктура">
+        <defs>
+          <marker id="ar-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#7fb6ff"/></marker>
+          <style>
+            .bx { fill: rgba(255,255,255,.055); stroke: rgba(255,255,255,.16); rx: 12; }
+            .bxa { fill: rgba(0,119,255,.18); stroke: rgba(127,182,255,.5); rx: 12; }
+            .t { fill: #fff; font: 680 14.5px Inter, sans-serif; }
+            .s { fill: rgba(234,241,255,.6); font: 12px Inter, sans-serif; }
+            .grp { fill: #8ec4ff; font: 750 11px Inter, sans-serif; letter-spacing: .13em; }
+            .ln { stroke: #7fb6ff; stroke-width: 1.6; fill: none; marker-end: url(#ar-arrow); }
+          </style>
+        </defs>
+        <text class="grp" x="0" y="12">МЕССЕНДЖЕР MAX</text>
+        <rect class="bxa" x="0" y="22" width="250" height="52"/><text class="t" x="16" y="44">Чат-бот</text><text class="s" x="16" y="63">вход и уведомления</text>
+        <rect class="bxa" x="0" y="86" width="250" height="52"/><text class="t" x="16" y="108">Мини-приложение</text><text class="s" x="16" y="127">кабинет владельца и витрины</text>
+        <text class="grp" x="360" y="12">БЭКЕНД AIRUNTIME</text>
+        <rect class="bx" x="360" y="22" width="250" height="52"/><text class="t" x="376" y="44">Вебхук</text><text class="s" x="376" y="63">секрет в пути, всегда 200</text>
+        <rect class="bx" x="360" y="86" width="250" height="52"/><text class="t" x="376" y="108">API мини-приложения</text><text class="s" x="376" y="127">вход — подпись initData</text>
+        <rect class="bx" x="360" y="150" width="250" height="38"/><text class="t" x="376" y="174">Генератор: LLM → витрина</text>
+        <text class="grp" x="720" y="12">ХРАНЕНИЕ И ИНФРАСТРУКТУРА</text>
+        <rect class="bx" x="720" y="22" width="230" height="52"/><text class="t" x="736" y="44">PostgreSQL</text><text class="s" x="736" y="63">владельцы, витрины, заявки</text>
+        <rect class="bx" x="720" y="86" width="230" height="52"/><text class="t" x="736" y="108">Docker + Traefik</text><text class="s" x="736" y="127">HTTPS, сертификат Минцифры</text>
+        <rect class="bx" x="720" y="150" width="230" height="38"/><text class="t" x="736" y="174">LLM-шлюз, с фоллбэком</text>
+        <path class="ln" d="M250,48 H352"/><path class="ln" d="M250,112 H352"/>
+        <path class="ln" d="M610,48 H712"/><path class="ln" d="M610,112 H712"/><path class="ln" d="M610,169 H712"/>
+        <path class="ln" d="M485,138 V144"/>
+      </svg>
+    </div>
+    <div class="g g3">
+      <div class="q">
+        <div class="q-h"><span class="q-n">1</span><span class="q-t">Структура соответствует масштабу MVP</span></div>
+        <p>Один бэкенд (FastAPI + PostgreSQL), один бот, <strong>одно мини-приложение на все витрины</strong>. Без микросервисов и очередей там, где они пока не нужны.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">3</span><span class="q-t">Логика разделена — легко поддерживать</span></div>
+        <div class="mods">
+          <code>schema.py</code><span>контракт витрины и его проверка</span>
+          <code>generator.py</code><span>описание → витрина</span>
+          <code>storefronts.py</code><span>витрины и владельцы</span>
+          <code>init_data.py</code><span>проверка подписи MAX</span>
+          <code>client.py · bot.py</code><span>Bot API и уведомления</span>
+        </div>
+      </div>
+      <div class="q accent">
+        <div class="q-h"><span class="q-n">4</span><span class="q-t">Решения соответствуют функциональности</span></div>
+        <p><strong>Витрина — данные, а не код:</strong> модель заполняет схему и выбирает дизайн из закрытого словаря. Новая витрина не требует деплоя, кривое поле обрезает валидация.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">11</span></div>
+</section>
+
+<!-- ======================= 12. SECURITY ==================================== -->
+<section class="slide">
+  <div class="slide-head tight">
+    <span class="eyebrow">Техническая оценка · Безопасность, зависимости и работа с данными <span class="crit-tag">10%</span></span>
+    <h2>Кто что видит и почему это безопасно</h2>
+  </div>
+  <div class="body roomy" style="justify-content:flex-start; gap:12px;">
+    <div class="g g3">
+      <div class="q">
+        <div class="q-h"><span class="q-n">1</span><span class="q-t">Секреты не в исходном коде</span></div>
+        <p>Токены и ключи — только в окружении; <code>.env.example</code> без значений. Рабочий токен для жюри подставляется в PDF при печати и в репозиторий не попадает.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">2</span><span class="q-t">Зависимости и версии зафиксированы</span></div>
+        <p><code>requirements.txt</code> + полное дерево в <code>requirements.lock</code>, <code>package-lock.json</code>. Сборка воспроизводима из коммита.</p>
+      </div>
+      <div class="q accent">
+        <div class="q-h"><span class="q-n">3</span><span class="q-t">Доступ к данным = логика решения</span></div>
+        <p>Личность — <strong>только из подписанного <code>initData</code></strong> (HMAC по токену бота, срок жизни — час). Владелец видит только свои витрины и заявки; идентификатор пользователя из тела запроса не принимается.</p>
+      </div>
+    </div>
+    <div class="g" style="grid-template-columns:1fr 1.3fr;">
+      <div class="q">
+        <div class="q-h"><span class="q-n">4</span><span class="q-t">Данные и внешние сервисы описаны</span></div>
+        <ul>
+          <li><strong>Храним:</strong> владельца (id MAX), витрину, заявку — имя, телефон, если клиент поделился, комментарий</li>
+          <li><strong>В модель уходит</strong> только описание бизнеса и правки владельца</li>
+          <li><strong>Удаление витрины</strong> удаляет и её заявки</li>
+        </ul>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">5</span><span class="q-t">Нет очевидных критичных рисков</span></div>
+        <ul>
+          <li><strong>Вебхук:</strong> секрет в пути, маскируется в логах, неверный секрет → 404</li>
+          <li><strong>Сайт владельца</strong> загружается с защитой от SSRF; фото — только https или собственные загрузки</li>
+          <li><strong>Ответ модели</strong> проходит схему: закрытый словарь, проверка контраста, никакого HTML</li>
+          <li><strong>Ввод пользователей</strong> экранируется в сообщениях бота</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">12</span></div>
+</section>
+
+<!-- ======================= 13. DOCUMENTATION =============================== -->
+<section class="slide">
+  <div class="slide-head tight">
+    <span class="eyebrow">Техническая оценка · Документация и комплектность <span class="crit-tag">10%</span></span>
+    <h2>Всё, чтобы проверить без нас</h2>
+  </div>
+  <div class="body roomy" style="justify-content:flex-start; gap:12px;">
+    <div class="g g3">
+      <div class="q">
+        <div class="q-h"><span class="q-n">1</span><span class="q-t">Материалы = зафиксированная версия</span></div>
+        <p>Commit hash — на слайде 1. README, презентация и экраны собраны из этого коммита; экраны переснимаются скриптом из репозитория.</p>
+      </div>
+      <div class="q accent">
+        <div class="q-h"><span class="q-n">2</span><span class="q-t">Воспроизводится по инструкции</span></div>
+        <p>Все компоненты — одной командой <code>docker compose up --build</code>. Сборка с нуля — около 4 минут по замеру, лимит задания — 5.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">3</span><span class="q-t">Запуск, архитектура, окружение описаны</span></div>
+        <p>README закрывает 15 пунктов задания по порядку; переменные — в <code>.env.example</code> с пояснениями; порты, зависимости и интеграции — отдельными пунктами.</p>
+      </div>
+    </div>
+    <div class="g g2">
+      <div class="q">
+        <div class="q-h"><span class="q-n">4</span><span class="q-t">Порядок проверки и ожидаемый результат</span></div>
+        <p>Таблица «Ручная проверка» в README: 8 шагов, у каждого — ожидаемый результат. Автотесты гоняются одной командой, в том числе без Docker на SQLite.</p>
+      </div>
+      <div class="q">
+        <div class="q-h"><span class="q-n">5</span><span class="q-t">Известные ограничения зафиксированы</span></div>
+        <ul>
+          <li>Время — текстовые слоты, пересечения не проверяются</li>
+          <li>Нет онлайн-оплаты и напоминаний; до 10 витрин на владельца</li>
+          <li>Ответ клиенту приходит, если MAX разрешает боту ему написать</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card plain" style="padding:10px 16px;">
+      <p class="small" style="margin-bottom:4px; font-weight:750; letter-spacing:.08em; text-transform:uppercase;">Использованные источники</p>
+      <div class="src-strip">
+        <span><b>ФНС России</b> — реестр МСП, июль 2026</span>
+        <span><b>MAX для разработчиков</b> — API ботов</span>
+        <span><b>OpenAPI-схема MAX</b> — github.com/max-messenger/api-schema</span>
+        <span><b>MAX Bridge</b> и валидация данных</span>
+        <span><b>Минцифры России</b> — корневой сертификат</span>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span><span class="foot-n">13</span></div>
+</section>
+
+<!-- ======================= 14. CLOSING =================================== -->
+<!-- Bookends the cover on the same background. Its one job is to hand the jury a way to
+     try the product in the next ten seconds - hence the QR code, not a list of URLs. -->
+<section class="slide cover closing">
+  <div class="cover-copy">
+    <div class="lockup" style="margin-bottom:34px;">
+      <span class="wordmark">
+        <svg viewBox="55 45 402 402" width="32" height="32" aria-hidden="true"><use href="#ar-mark"/></svg>
+        AIRUNTIME
+      </span>
+      <span class="x">×</span>
+      <span class="maxmark"><img src="mark-max.png" alt="" width="32" height="32" />max</span>
+    </div>
+
+    <span class="eyebrow">Спасибо за внимание</span>
+    <h1>Одно сообщение —<br />и запись уже в MAX</h1>
+    <p class="lead">Бот и мини-приложение работают прямо сейчас. Опишите бизнес одним сообщением — у клиентов будет витрина со своим дизайном и записью, а у вас заявки в чате.</p>
+
+    <dl class="links">
+      <dt>Бот в MAX</dt><dd>max.ru/t403_hakaton_max_bot</dd>
+      <dt>Мини-приложение</dt><dd>airuntime.ru/max</dd>
+      <dt>Исходный код</dt><dd>github.com/airuntime-ru/airuntime</dd>
+    </dl>
+  </div>
+
+  <div class="qr-card">
+    <img src="qr-bot.png" alt="QR-код: чат-бот AIRuntime в MAX" />
+    <b>Наведите камеру</b>
+    <span>Откроется бот в MAX — опишите свой бизнес и получите свою витрину</span>
+  </div>
+
+  <div class="foot">
+    <span class="foot-brand">AIRuntime <span class="foot-x">×</span> MAX</span>
+    <span class="foot-n">14</span>
+  </div>
+</section>
+
+</body>
+</html>

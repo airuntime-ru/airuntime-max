@@ -1,0 +1,278 @@
+name: airuntime
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:16
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: airuntime
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d airuntime"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    logging: *default-logging
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    logging: *default-logging
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: airuntime
+      MINIO_ROOT_PASSWORD: airuntime-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    logging: *default-logging
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 airuntime airuntime-secret; do sleep 1; done;
+      mc mb local/airuntime-files --ignore-existing;
+      mc anonymous set none local/airuntime-files;
+      exit 0;
+      "
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    logging: *default-logging
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/airuntime
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: change-me
+      APP_DOMAIN: airuntime.ru
+      FRONTEND_URL: http://localhost:3000
+      API_URL: http://localhost:8000
+      ALLOWED_ORIGINS: http://localhost:3000
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      PROVIDER_NAME: ${PROVIDER_NAME:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      DEFAULT_MODEL_OPENAI: ${DEFAULT_MODEL_OPENAI:-gpt-5.6-sol}
+      DEFAULT_MODEL_OPENROUTER: ${DEFAULT_MODEL_OPENROUTER:-openai/gpt-5.6-sol}
+      BILLING_CREDITS_PER_RUB: ${BILLING_CREDITS_PER_RUB:-100}
+      BILLING_USD_TO_RUB: ${BILLING_USD_TO_RUB:-100}
+      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
+      CODEX_SIMPLE_TIMEOUT_SECONDS: ${CODEX_SIMPLE_TIMEOUT_SECONDS:-300}
+      ORCHESTRATION_TASK_DEFAULT_TIMEOUT_SECONDS: ${ORCHESTRATION_TASK_DEFAULT_TIMEOUT_SECONDS:-1800}
+      # Every agent/orchestration capability (specialist roles, skills, MCP, worktree
+      # isolation, replanning, preview/design review) always runs - there are no on/off
+      # switches for them any more. Run `docker compose build preview` once so the preview
+      # step has its image; without it every preview attempt degrades to a graceful
+      # "image not built" result (never a crash).
+      PREVIEW_IMAGE: ${PREVIEW_IMAGE:-airuntime-preview}
+      PREVIEW_TIMEOUT_SECONDS: ${PREVIEW_TIMEOUT_SECONDS:-90}
+      DEPLOYMENT_DEFAULT_IMAGE: nginx:alpine
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+      S3_ACCESS_KEY: airuntime
+      S3_SECRET_KEY: airuntime-secret
+      S3_BUCKET: airuntime-files
+      ROBOKASSA_MERCHANT_LOGIN: ${ROBOKASSA_MERCHANT_LOGIN:-}
+      ROBOKASSA_PASSWORD1: ${ROBOKASSA_PASSWORD1:-}
+      ROBOKASSA_PASSWORD2: ${ROBOKASSA_PASSWORD2:-}
+      ROBOKASSA_PASSWORD3: ${ROBOKASSA_PASSWORD3:-}
+      ROBOKASSA_TEST_MODE: ${ROBOKASSA_TEST_MODE:-true}
+      ROBOKASSA_HASH_ALGORITHM: ${ROBOKASSA_HASH_ALGORITHM:-md5}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
+      MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-}
+      MAX_BOT_ID: ${MAX_BOT_ID:-}
+      MAX_API_BASE_URL: ${MAX_API_BASE_URL:-https://platform-api2.max.ru}
+      MAX_WEBHOOK_SECRET: ${MAX_WEBHOOK_SECRET:-}
+      MAX_MINIAPP_URL: ${MAX_MINIAPP_URL:-}
+      MAX_CA_BUNDLE: ${MAX_CA_BUNDLE:-}
+    volumes:
+      - airruntime_projects_data:/data/airruntime-projects
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    logging: *default-logging
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/airuntime
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: change-me
+      APP_DOMAIN: airuntime.ru
+      FRONTEND_URL: http://localhost:3000
+      API_URL: http://localhost:8000
+      PROVIDER_NAME: ${PROVIDER_NAME:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      DEFAULT_MODEL_OPENAI: ${DEFAULT_MODEL_OPENAI:-gpt-5.6-sol}
+      DEFAULT_MODEL_OPENROUTER: ${DEFAULT_MODEL_OPENROUTER:-openai/gpt-5.6-sol}
+      BILLING_CREDITS_PER_RUB: ${BILLING_CREDITS_PER_RUB:-100}
+      BILLING_USD_TO_RUB: ${BILLING_USD_TO_RUB:-100}
+      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
+      CODEX_SIMPLE_TIMEOUT_SECONDS: ${CODEX_SIMPLE_TIMEOUT_SECONDS:-300}
+      ORCHESTRATION_TASK_DEFAULT_TIMEOUT_SECONDS: ${ORCHESTRATION_TASK_DEFAULT_TIMEOUT_SECONDS:-1800}
+      # Per-turn Codex containers get Docker through the restricted proxy below. The worker
+      # itself still needs the host socket to create deployments and those isolated turns.
+      CODEX_DOCKER_HOST: ${CODEX_DOCKER_HOST:-tcp://docker-socket-proxy:2375}
+      CODEX_NETWORK: ${CODEX_NETWORK:-airuntime_default}
+      DEPLOYMENT_DEFAULT_IMAGE: nginx:alpine
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+      S3_ACCESS_KEY: airuntime
+      S3_SECRET_KEY: airuntime-secret
+      S3_BUCKET: airuntime-files
+      DEPLOYMENT_VOLUMES_DIR: ${DEPLOYMENT_VOLUMES_DIR:-/var/lib/airuntime/volumes}
+      # preview_runner.py (worker-only) reads these to launch the per-run preview container -
+      # see the `preview` service below.
+      PREVIEW_IMAGE: ${PREVIEW_IMAGE:-airuntime-preview}
+      PREVIEW_TIMEOUT_SECONDS: ${PREVIEW_TIMEOUT_SECONDS:-90}
+      PREVIEW_MEMORY_LIMIT: ${PREVIEW_MEMORY_LIMIT:-1g}
+      PREVIEW_CPU_LIMIT: ${PREVIEW_CPU_LIMIT:-1.0}
+    command: ["sh", "/app/entrypoint.sh", "worker"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - airruntime_projects_data:/data/airruntime-projects
+      - ${DEPLOYMENT_VOLUMES_DIR:-/var/lib/airuntime/volumes}:${DEPLOYMENT_VOLUMES_DIR:-/var/lib/airuntime/volumes}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      docker-socket-proxy:
+        condition: service_started
+
+  # Build source only, as of the per-turn isolation rework (see codex_worker.py) - the worker
+  # launches a fresh, single-purpose container from this image per Codex turn instead of `docker
+  # exec`-ing into one long-lived instance, so nothing here needs to actually run by default.
+  # `docker compose build codex` (or `up --build`, which still builds every service regardless of
+  # profile) produces the image; profile keeps `up` from also starting an idle instance of it.
+  codex:
+    build:
+      context: .
+      dockerfile: deployment/codex/Dockerfile
+    logging: *default-logging
+    profiles: ["build-only"]
+
+  # Narrows the per-turn Codex container's Docker access from the raw host socket down to a
+  # vetted API subset. The worker defaults CODEX_DOCKER_HOST to this service; explicitly set
+  # CODEX_DOCKER_HOST="" only for an intentional legacy fallback.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    logging: *default-logging
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      EXEC: 1
+      BUILD: 1
+      POST: 1
+      NETWORKS: 1
+      VOLUMES: 0
+      SWARM: 0
+      SERVICES: 0
+      NODES: 0
+      PLUGINS: 0
+      SECRETS: 0
+      CONFIGS: 0
+      SYSTEM: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # Build source only, same shape as `codex` above - the worker launches a fresh, single-purpose
+  # container from this image per preview_project call (see backend/src/services/
+  # preview_runner.py) instead of a long-lived instance. `docker compose build preview` produces
+  # the image; profile keeps `up` from also starting an idle instance of it.
+  preview:
+    build:
+      context: .
+      dockerfile: deployment/preview/Dockerfile
+    logging: *default-logging
+    profiles: ["build-only"]
+
+  django-admin:
+    build:
+      context: .
+      dockerfile: admin/Dockerfile
+    logging: *default-logging
+    environment:
+      DJANGO_SECRET_KEY: change-me
+      DJANGO_DEBUG: "true"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:8001
+      DJANGO_SUPERUSER_EMAIL: admin@airuntime.ru
+      DJANGO_SUPERUSER_PASSWORD: admin123
+      POSTGRES_DB: airuntime
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+        NEXT_PUBLIC_SITE_URL: http://localhost:3000
+        NEXT_PUBLIC_BASE_DOMAIN: airuntime.ru
+    logging: *default-logging
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_BASE_DOMAIN: airuntime.ru
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  minio_data:
+  airruntime_projects_data:

@@ -1,0 +1,8 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import otp_code, security_notice %}
+{% block body %}
+<p style="margin:0 0 4px;font-family:{{ font_stack }};font-size:16px;line-height:1.55;color:{{ colors.muted }};">Введите этот код на странице входа в AIRuntime.</p>
+{{ otp_code(code) }}
+<p style="margin:0;font-family:{{ font_stack }};font-size:15px;line-height:1.5;color:{{ colors.ink }};">Код действует {{ minutes }} минут.</p>
+{{ security_notice("Если вы не запрашивали вход, просто проигнорируйте это письмо. Никому не сообщайте код.") }}
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import button, url_pill, status_badge %}
+{% block body %}
+<p style="margin:0 0 12px;">{{ status_badge("Live", "success") }}</p>
+<p style="margin:0;font-family:{{ font_stack }};font-size:16px;line-height:1.55;color:{{ colors.muted }};">Проект <strong style="color:{{ colors.ink }};">{{ project_name }}</strong> успешно развёрнут и доступен.</p>
+{% if project_url %}{{ url_pill(project_url) }}{% endif %}
+{% if open_url %}{{ button("Открыть проект", open_url) }}{% endif %}
+{% endblock %}

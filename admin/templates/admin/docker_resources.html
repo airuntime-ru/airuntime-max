@@ -1,0 +1,103 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Главная</a> &rsaquo; Ресурсы Docker
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .docker-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+  }
+
+  .docker-toolbar a {
+    border: 1px solid var(--hairline-color);
+    border-radius: 999px;
+    padding: 8px 12px;
+    text-decoration: none;
+  }
+
+  .docker-toolbar a.active {
+    background: var(--primary);
+    color: var(--primary-fg);
+  }
+
+  .meter {
+    overflow: hidden;
+    width: 120px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--selected-bg);
+  }
+
+  .meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary);
+  }
+</style>
+
+<div class="docker-toolbar">
+  <a href="{% url 'admin_docker_containers' %}">Контейнеры</a>
+  <a href="{% url 'admin_docker_images' %}">Образы</a>
+  <a class="active" href="{% url 'admin_docker_resources' %}">Ресурсы</a>
+</div>
+
+{% if docker_error %}
+  <p class="errornote">Docker недоступен: {{ docker_error.message }}</p>
+{% endif %}
+
+<div class="module">
+  <table>
+    <thead>
+      <tr>
+        <th>Контейнер</th>
+        <th>Проект / владелец</th>
+        <th>Образ</th>
+        <th>CPU</th>
+        <th>RAM</th>
+        <th>Network</th>
+        <th>Disk IO</th>
+        <th>PIDs</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in resources %}
+        <tr>
+          <td>
+            <strong>{{ row.name }}</strong><br>
+            <span class="quiet">{{ row.short_id }}</span>
+          </td>
+          <td>
+            {% if row.project_name %}
+              <strong>{{ row.project_name }}</strong><br>
+              <span class="quiet">{{ row.owner_email }}</span>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ row.image }}</td>
+          <td>{{ row.cpu|floatformat:1 }}%</td>
+          <td>
+            {{ row.memory }} / {{ row.memory_limit }}<br>
+            <div class="meter" title="{{ row.memory_percent|floatformat:1 }}%">
+              <span style="width: {{ row.memory_percent|floatformat:0 }}%;"></span>
+            </div>
+          </td>
+          <td>↓ {{ row.network_rx }}<br>↑ {{ row.network_tx }}</td>
+          <td>R {{ row.block_read }}<br>W {{ row.block_write }}</td>
+          <td>{{ row.pids }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8">Запущенных контейнеров нет.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

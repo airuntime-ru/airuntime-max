@@ -1,0 +1,184 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Запуск {{ run.id|slice:":8" }}… | {{ site_title|default:_("Django site admin") }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo;
+  {% if project %}
+  <a href="{% url 'admin_orchestration_project_dashboard' project.id %}">Оркестрация — {{ project.name }}</a>
+  &rsaquo;
+  {% endif %}
+  Запуск {{ run.id|slice:":8" }}…
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .an-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:18px; margin-bottom:22px; }
+  .an-card { border:1px solid var(--border-color); border-radius:10px; padding:16px; background:var(--body-bg); margin-bottom:18px; }
+  .an-card h2 { font-size:14px; margin:0 0 12px; }
+  .an-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .an-table th, .an-table td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--hairline-color); vertical-align:top; }
+  .an-table th { font-weight:600; color:var(--body-quiet-color); }
+  .an-table td.num, .an-table th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .an-meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; font-size:13px; }
+  .an-meta__label { color:var(--body-quiet-color); font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+  .an-meta__value { margin-top:4px; word-break:break-word; }
+  .an-status { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; background:#f3f4f6; color:#374151; }
+  .an-status--completed { background:#e8f5e9; color:#2e7d32; }
+  .an-status--failed { background:#ffebee; color:#c62828; }
+  .an-timeline { display:grid; gap:12px; }
+  .an-event { border:1px solid var(--hairline-color); border-radius:8px; padding:12px; }
+  .an-event__head { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:8px; font-size:13px; }
+  .an-event__type { font-weight:600; }
+  .an-event__seq { color:var(--body-quiet-color); font-size:12px; }
+  .an-event__time { color:var(--body-quiet-color); font-size:12px; margin-left:auto; }
+  .an-payload { background:var(--darkened-bg); border-radius:6px; padding:10px; font-family:ui-monospace, monospace; font-size:12px; white-space:pre-wrap; overflow-x:auto; max-height:320px; overflow-y:auto; }
+  .an-error { color:#c62828; font-size:13px; margin-top:8px; }
+  .an-request { font-size:13px; white-space:pre-wrap; max-height:200px; overflow-y:auto; background:var(--darkened-bg); padding:10px; border-radius:6px; }
+</style>
+
+<div class="an-card">
+  <h2>Метаданные запуска</h2>
+  <div class="an-meta">
+    <div>
+      <div class="an-meta__label">ID</div>
+      <div class="an-meta__value"><code>{{ run.id }}</code></div>
+    </div>
+    <div>
+      <div class="an-meta__label">Статус</div>
+      <div class="an-meta__value">
+        <span class="an-status an-status--{{ run.status }}">{{ run.status }}</span>
+        {% if run.cancel_requested %} · отмена запрошена{% endif %}
+      </div>
+    </div>
+    <div>
+      <div class="an-meta__label">Проект</div>
+      <div class="an-meta__value">
+        {% if project %}
+        <a href="{% url 'admin_orchestration_project_dashboard' project.id %}">{{ project.name }}</a>
+        {% if product_links %}
+          {% for label, href, text in product_links %}
+            · <a href="{{ href }}" target="_blank" rel="noopener noreferrer">{{ label }} · {{ text }}</a>
+          {% endfor %}
+        {% endif %}
+        {% else %}
+        {{ run.project_id }}
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <div class="an-meta__label">Кредиты</div>
+      <div class="an-meta__value">{{ run.credits_used }}{% if run.credit_budget %} / {{ run.credit_budget }}{% endif %}</div>
+    </div>
+    <div>
+      <div class="an-meta__label">План</div>
+      <div class="an-meta__value">v{{ run.plan_version }}</div>
+    </div>
+    <div>
+      <div class="an-meta__label">Модель</div>
+      <div class="an-meta__value">{{ run.provider|default:"—" }} / {{ run.model|default:"—" }}</div>
+    </div>
+    <div>
+      <div class="an-meta__label">Создан</div>
+      <div class="an-meta__value">{{ run.created_at }}</div>
+    </div>
+    <div>
+      <div class="an-meta__label">Старт / финиш</div>
+      <div class="an-meta__value">{{ run.started_at|default:"—" }} → {{ run.finished_at|default:"—" }}</div>
+    </div>
+    <div>
+      <div class="an-meta__label">Коммиты</div>
+      <div class="an-meta__value">{{ run.base_commit_sha|default:"—" }} → {{ run.final_commit_sha|default:"—" }}</div>
+    </div>
+    <div>
+      <div class="an-meta__label">Сложность</div>
+      <div class="an-meta__value">{{ run.complexity|default:"—" }}</div>
+    </div>
+  </div>
+  {% if run.goal %}
+  <div style="margin-top:14px;">
+    <div class="an-meta__label">Цель</div>
+    <div class="an-meta__value">{{ run.goal }}</div>
+  </div>
+  {% endif %}
+  {% if run.context_summary %}
+  <div style="margin-top:14px;">
+    <div class="an-meta__label">Контекст (без секретов)</div>
+    <div class="an-meta__value">{{ run.context_summary }}</div>
+  </div>
+  {% endif %}
+  {% if run.error_code or run.error_message %}
+  <div class="an-error">
+    <strong>{{ run.error_code|default:"ошибка" }}</strong>
+    {% if run.error_message %}: {{ run.error_message }}{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if run.original_request %}
+<div class="an-card">
+  <h2>Исходный запрос</h2>
+  <div class="an-request">{{ run.original_request }}</div>
+</div>
+{% endif %}
+
+<div class="an-card">
+  <h2>Задачи ({{ tasks|length }})</h2>
+  <table class="an-table">
+    <tr>
+      <th>#</th>
+      <th>local_id</th>
+      <th>Название</th>
+      <th>Роль</th>
+      <th>Тип</th>
+      <th>Статус</th>
+      <th class="num">Попытка</th>
+      <th>Старт</th>
+      <th>Финиш</th>
+    </tr>
+    {% for task in tasks %}
+    <tr>
+      <td class="num">{{ task.sequence }}</td>
+      <td><code>{{ task.local_id }}</code></td>
+      <td>{{ task.title }}</td>
+      <td>{{ task.role }}</td>
+      <td>{{ task.execution_kind }}</td>
+      <td>{{ task.status }}</td>
+      <td class="num">{{ task.attempt }}/{{ task.max_attempts }}</td>
+      <td>{{ task.started_at|default:"—" }}</td>
+      <td>{{ task.finished_at|default:"—" }}</td>
+    </tr>
+    {% if task.error_code or task.error_message %}
+    <tr>
+      <td colspan="9" class="an-error">{{ task.error_code|default:"" }}{% if task.error_message %}: {{ task.error_message }}{% endif %}</td>
+    </tr>
+    {% endif %}
+    {% empty %}
+    <tr><td colspan="9">Задач нет</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="an-card">
+  <h2>Таймлайн событий ({{ events|length }})</h2>
+  <div class="an-timeline">
+    {% for event in events %}
+    <div class="an-event">
+      <div class="an-event__head">
+        <span class="an-event__seq">#{{ event.seq }}</span>
+        <span class="an-event__type">{{ event.event_type }}</span>
+        {% if event.task_id %}<span class="an-event__seq">task {{ event.task_id|slice:":8" }}…</span>{% endif %}
+        <span class="an-event__time">{{ event.created_at }}</span>
+      </div>
+      <pre class="an-payload">{{ event.payload_pretty }}</pre>
+    </div>
+    {% empty %}
+    <p>Событий нет</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Node / Frontend
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker / infra runtime
+infra/mail/data/
+infra/mail/state/
+infra/mail/config/ssl/
+infra/mail/config/postfix-accounts.cf
+infra/mail/config/postfix-virtual.cf
+infra/traefik/letsencrypt/
+letsencrypt/
+
+# Django
+admin/staticfiles/
+admin/*.sqlite3
+
+# Logs (anchored to repo root - unanchored "logs/" would also match the Next.js
+# route folder at frontend/src/app/app/projects/[id]/logs/)
+*.log
+/logs/
+/output/
+
+# Ops / one-off server scripts (keep local only; not frontend/scripts/)
+/scripts/
+!/scripts/notify_deploy.sh
+
+# Local audit artifacts
+frontend/docs/
+backend/.email-preview/
+
+# Accidental dumps
+frontend/public/ChatGPT*
+
+# Playwright CLI
+.playwright-cli/
+
+# Generated from docs/max-presentation/deck.html; Chrome rasterises the gradients and the
+# starfield, so the PDF lands well over the repo's binary-size guard. Rebuild it with the
+# command in that folder's README.
+docs/max-presentation/presentation.pdf
+docs/max-presentation/node_modules/
+
+# Presentation: the jury copy carries working tokens, never commit it
+docs/max-presentation/.secrets.env
+docs/max-presentation/deck.filled.html
+docs/max-presentation/presentation.jury.pdf

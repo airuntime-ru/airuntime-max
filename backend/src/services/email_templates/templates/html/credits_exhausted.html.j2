@@ -1,0 +1,7 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import button, status_badge %}
+{% block body %}
+<p style="margin:0 0 12px;">{{ status_badge("Баланс исчерпан", "error") }}</p>
+<p style="margin:0;font-family:{{ font_stack }};font-size:16px;line-height:1.55;color:{{ colors.muted }};">Баланс закончился. Пока он пуст, чат с агентом и новые генерации недоступны. Уже развёрнутые проекты продолжают работать.</p>
+{% if billing_url %}{{ button("Пополнить или выбрать тариф", billing_url) }}{% endif %}
+{% endblock %}

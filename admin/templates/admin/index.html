@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/dashboard.css" %}">
+<style>
+  #content-main > .module { width: 100%; }
+  #content-main > .module table { width: 100%; }
+</style>
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block nav-sidebar %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="module" style="margin-bottom:18px;">
+    <table>
+      <caption>Аналитика</caption>
+      <tr>
+        <th scope="row"><a href="{% url 'admin_analytics_dashboard' %}">Расходы, маржа и воронка</a></th>
+      </tr>
+      <tr>
+        <th scope="row"><a href="{% url 'admin:product_analytics_dashboard' %}">Продуктовая аналитика</a></th>
+      </tr>
+    </table>
+  </div>
+  <div class="module" style="margin-bottom:18px;">
+    <table>
+      <caption>Оркестрация</caption>
+      <tr>
+        <th scope="row"><a href="{% url 'admin:orchestration_section_domainorchestrationrun_changelist' %}">Запуски оркестрации</a></th>
+      </tr>
+      <tr>
+        <th scope="row"><a href="{% url 'admin_orchestration_analytics' %}">Аналитика оркестратора</a></th>
+      </tr>
+    </table>
+  </div>
+  <div class="module" style="margin-bottom:18px;">
+    <table>
+      <caption>Поддержка</caption>
+      <tr>
+        <th scope="row"><a href="{% url 'admin_support_open' %}">Чат поддержки</a></th>
+      </tr>
+    </table>
+  </div>
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+</div>
+{% endblock %}
