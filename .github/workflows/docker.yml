@@ -12,6 +12,8 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+  ORG: ${{ github.repository_owner }}
+  REPO: ${{ github.event.repository.name }}
 
 jobs:
   build:
@@ -66,3 +68,30 @@ jobs:
             NEXT_PUBLIC_API_BASE_URL=https://api.airuntime.ru/api/v1
             NEXT_PUBLIC_SITE_URL=https://airuntime.ru
             NEXT_PUBLIC_BASE_DOMAIN=airuntime.ru
+
+      - name: Make package public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE: ${{ env.REPO }}/${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          enc="$(printf %s "$PACKAGE" | jq -sRr @uri)"
+          put_vis() {
+            curl -sS -o /tmp/pkg-vis.json -w '%{http_code}' -X PUT \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/orgs/${ORG}/packages/container/${enc}/visibility" \
+              -d '{"visibility":"public"}'
+          }
+          for i in 1 2 3 4 5 6; do
+            code="$(put_vis)"
+            echo "visibility attempt $i HTTP $code for $PACKAGE"
+            cat /tmp/pkg-vis.json || true
+            if [ "$code" = "204" ] || [ "$code" = "200" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Failed to set public visibility" >&2
+          exit 1
