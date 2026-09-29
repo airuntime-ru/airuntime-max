@@ -381,7 +381,7 @@ function darkSlide() {
   const rows = [
     ["Чат-бот в MAX", "https://max.ru/t403_hakaton_max_bot", "«Хакатон МАХ 403», user_id 395683755", 0.62],
     ["Мини-приложение", "https://airuntime.ru/max", "Подключено к боту: кнопка «Открыть AIRuntime» и ссылки max.ru/t403_hakaton_max_bot?startapp=<slug>", 0.8],
-    ["Git-репозиторий", "github.com/airuntime-ru/airuntime", "", 0.42],
+    ["Git-репозиторий", "github.com/airuntime-ru/airuntime-max", "", 0.42],
     ["Commit hash", COMMIT, `ветка main · короткий ${COMMIT.slice(0, 7)}`, 0.62],
     ["Собственный API", "Не используется", "Эндпоинты /api/v1/max/* обслуживают только мини-приложение", 0.62],
     ["Тестовые учётки", "Не нужны: вход — аккаунт MAX", "Для роли клиента — второй аккаунт MAX", 0.62],
@@ -1410,7 +1410,7 @@ function darkSlide() {
   [
     ["БОТ В MAX", "max.ru/t403_hakaton_max_bot"],
     ["МИНИ-ПРИЛОЖЕНИЕ", "airuntime.ru/max"],
-    ["ИСХОДНЫЙ КОД", "github.com/airuntime-ru/airuntime"],
+    ["ИСХОДНЫЙ КОД", "github.com/airuntime-ru/airuntime-max"],
   ].forEach(([label, value], i) => {
     const y = px(499 + i * 34);
     s.addText(label, { ...small, x: px(72), y, w: px(180), h: px(24), valign: "middle", color: ON_COVER_MUTED });
