@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>AIRuntime</title>
+<style>
+  /* 16:9 slides printed straight to PDF. @page must equal the .slide box exactly, or
+     Chrome rescales and hairlines appear along the edges. */
+  @page { size: 1280px 720px; margin: 0; }
+
+  :root {
+    /* MAX / VK */
+    --max-blue: #0077ff;
+    --max-violet: #7b2cff;
+    --max-pink: #ff2d87;
+    /* AIRuntime deep space */
+    --ar-space: #05070f;
+    --ar-space-2: #0a1123;
+    --ar-mint: #5ce6b0;
+    /* Ink & surfaces */
+    --ink: #0d1117;
+    --ink-2: #4a5464;
+    --ink-3: #79839a;
+    --line: #dde4ee;
+    --surface: #ffffff;
+    --surface-2: #f3f6fb;
+    --good: #1f8a55;
+
+    --grad: linear-gradient(120deg, var(--max-blue), var(--max-violet));
+    --ar-starfield: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='%23fff'%3E%3Ccircle cx='20' cy='31' r='1' opacity='.85'/%3E%3Ccircle cx='141' cy='52' r='.8' opacity='.55'/%3E%3Ccircle cx='74' cy='119' r='1.2' opacity='.7'/%3E%3Ccircle cx='181' cy='161' r='.7' opacity='.45'/%3E%3Ccircle cx='41' cy='176' r='.9' opacity='.6'/%3E%3Ccircle cx='112' cy='14' r='.6' opacity='.4'/%3E%3Ccircle cx='166' cy='96' r='1' opacity='.5'/%3E%3Ccircle cx='96' cy='72' r='.6' opacity='.38'/%3E%3Ccircle cx='8' cy='94' r='.7' opacity='.42'/%3E%3Ccircle cx='128' cy='188' r='.8' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: #8d95a4;
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    /* Without this the dark slides print as blank white paper. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .slide {
+    position: relative;
+    width: 1280px; height: 720px;
+    overflow: hidden;
+    background: var(--surface);
+    padding: 44px 58px 58px;
+    display: flex; flex-direction: column;
+    page-break-after: always; break-after: page;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  @media screen {
+    body { padding: 24px 0; }
+    .slide { margin: 0 auto 22px; box-shadow: 0 18px 50px -24px rgba(6,12,24,.6); }
+  }
+
+  /* --- typography --------------------------------------------------------- */
+  h1 { margin: 0; font-size: 66px; line-height: 1.02; letter-spacing: -0.035em; font-weight: 800; }
+  h2 { margin: 0 0 5px; font-size: 36px; line-height: 1.08; letter-spacing: -0.028em; font-weight: 750; }
+  h3 { margin: 0 0 7px; font-size: 18.5px; line-height: 1.25; letter-spacing: -0.012em; font-weight: 680; }
+  p  { margin: 0; font-size: 16px; line-height: 1.46; color: var(--ink-2); }
+  .lead { font-size: 20px; line-height: 1.4; color: var(--ink-2); }
+  .small { font-size: 13.5px; line-height: 1.4; color: var(--ink-3); }
+  strong { font-weight: 680; color: var(--ink); }
+  code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: .92em; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+    font-size: 11.5px; font-weight: 750; letter-spacing: .17em; text-transform: uppercase;
+    color: var(--max-blue);
+  }
+  /* The gradient tick is the one mark both brands share: MAX blue running into violet. */
+  .eyebrow::before { content: ""; width: 30px; height: 4px; border-radius: 2px; background: var(--grad); }
+
+  .slide-head { margin-bottom: 20px; }
+  .slide-head p { font-size: 16.5px; max-width: 960px; }
+
+  /* --- footer ------------------------------------------------------------- */
+  .foot {
+    position: absolute; left: 58px; right: 58px; bottom: 22px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .foot-brand { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+  .foot-x { opacity: .55; font-weight: 600; }
+  .foot-n { font-size: 13px; font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  /* --- layout ------------------------------------------------------------- */
+  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+  .cols { display: grid; gap: 16px; }
+  .c2 { grid-template-columns: 1fr 1fr; }
+  .c3 { grid-template-columns: repeat(3, 1fr); }
+  .c4 { grid-template-columns: repeat(4, 1fr); }
+  .split { display: grid; grid-template-columns: 1.04fr .96fr; gap: 26px; align-items: start; }
+
+  .card { background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; padding: 17px 19px; }
+  .card.plain { background: var(--surface); }
+  .card.accent { background: linear-gradient(140deg, rgba(0,119,255,.08), rgba(123,44,255,.08)); border-color: rgba(0,119,255,.24); }
+  /* A hairline of the shared gradient along the top edge marks the lead card on a slide. */
+  .card.topline { position: relative; overflow: hidden; }
+  .card.topline::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--grad); }
+
+  .tile { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; overflow: hidden; }
+  .tile::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--grad); }
+  .tile .value { font-size: 36px; line-height: 1; font-weight: 800; letter-spacing: -.035em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .tile .unit { font-size: 17px; font-weight: 700; color: var(--ink-2); margin-left: 4px; }
+  .tile .label { margin-top: 8px; font-size: 13.5px; line-height: 1.35; color: var(--ink-2); }
+  .tile .src { margin-top: 5px; font-size: 11.5px; color: var(--ink-3); }
+
+  ul { margin: 0; padding: 0; list-style: none; }
+  li { position: relative; padding-left: 19px; font-size: 15px; line-height: 1.44; color: var(--ink-2); margin-bottom: 6px; }
+  li::before { content: ""; position: absolute; left: 3px; top: 8px; width: 6px; height: 6px; border-radius: 2px; background: var(--max-blue); }
+  li:last-child { margin-bottom: 0; }
+  li strong { color: var(--ink); }
+
+  .step-n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 9px;
+    background: var(--grad); color: #fff; font-size: 14px; font-weight: 800;
+    margin-bottom: 10px;
+  }
+
+  .kv { display: grid; grid-template-columns: 192px 1fr; gap: 8px 16px; font-size: 15px; line-height: 1.4; }
+  .kv dt { color: var(--ink-3); }
+  .kv dd { margin: 0; color: var(--ink); word-break: break-word; }
+
+  .pill { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 700; }
+  .pill-fact { background: rgba(31,138,85,.13); color: var(--good); }
+  .pill-guess { background: rgba(255,45,135,.11); color: #d31169; }
+  .pill-blue { background: rgba(0,119,255,.11); color: var(--max-blue); }
+
+  /* --- phone frames -------------------------------------------------------- */
+  /* Shots are whole 390x780 screens, never cropped - a sliced screenshot reads as a
+     broken slide. The bezel makes the aspect ratio look deliberate. Everything scales off
+     --pw so a frame looks the same at any size; build-pptx.js uses the same ratios.
+     Size these by the height they end up with (--pw x 1.948), not by the width: at 268px
+     three of them are 522px tall and do not fit under a slide title. */
+  .phone {
+    --pw: 222px;
+    width: var(--pw); margin: 0 auto;
+    border-radius: calc(var(--pw) * .082); padding: calc(var(--pw) * .026);
+    background: linear-gradient(160deg, #e7ecf5, #ccd6e6);
+    box-shadow: 0 16px 34px -18px rgba(9,18,40,.5);
+  }
+  /* The ratio is declared, not discovered: the layout must be the same whether or not the
+     screenshot has loaded yet - and so must any check run against it. */
+  .phone img { display: block; width: 100%; aspect-ratio: 1 / 2; border-radius: calc(var(--pw) * .06); }
+  .phone.dark {
+    background: linear-gradient(160deg, #2e374c, #141a28);
+    box-shadow: 0 34px 70px -26px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .shot-caption { margin: 14px auto 0; max-width: 330px; text-align: center; }
+  .gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+  .gallery .shot-caption { margin-top: 10px; }
+  .gallery .shot-caption span { font-size: 12px; }
+  .niche { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .niche span { padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); font-size: 13.5px; color: #eaf1ff; }
+  .fill { color: #d31169; font-weight: 700; border-bottom: 1px dashed currentColor; }
+  .shot-caption b { display: block; font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+  .shot-caption span { font-size: 13px; line-height: 1.38; color: var(--ink-3); }
+
+  /* --- pixel-step motif ---------------------------------------------------- */
+  /* The staircase is MAX's own brand device; on the cover it steps across the seam
+     into AIRuntime's starfield, which is the whole idea of the collaboration. */
+  .steps-tr { position: absolute; top: 0; right: 0; }
+  .steps-bl { position: absolute; bottom: 0; left: 0; }
+
+  /* --- cosmos slides (AIRuntime) ------------------------------------------- */
+  .cosmos {
+    color: #eaf1ff;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% -12%, rgba(35,136,255,.28), transparent 62%),
+      radial-gradient(ellipse 60% 52% at 10% 22%, rgba(124,108,255,.26), transparent 66%),
+      radial-gradient(ellipse 66% 54% at 94% 76%, rgba(25,199,210,.16), transparent 68%),
+      linear-gradient(176deg, var(--ar-space) 0%, var(--ar-space-2) 48%, #070c1a 100%);
+  }
+  .cosmos::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: var(--ar-starfield);
+    background-size: 220px 220px;
+    opacity: .5; pointer-events: none;
+  }
+  .cosmos > * { position: relative; z-index: 1; }
+  /* ...except the footer, which must stay pinned to the bottom padding. */
+  .cosmos > .foot { position: absolute; z-index: 2; }
+  .cosmos h2, .cosmos h1 { color: #fff; }
+  .cosmos p, .cosmos li { color: rgba(234,241,255,.74); }
+  .cosmos strong, .cosmos li strong { color: #fff; }
+  .cosmos .card { background: rgba(255,255,255,.055); border-color: rgba(255,255,255,.13); }
+  .cosmos .card.accent { background: linear-gradient(140deg, rgba(35,136,255,.16), rgba(124,108,255,.14)); border-color: rgba(127,182,255,.3); }
+  .cosmos .small { color: rgba(234,241,255,.5); }
+  .cosmos .eyebrow { color: #8ec4ff; }
+  .cosmos li::before { background: #8ec4ff; }
+  .cosmos .foot-brand, .cosmos .foot-n { color: rgba(234,241,255,.52); }
+
+  /* --- criteria map ------------------------------------------------------- */
+  /* The jury scores criterion by criterion; this slide tells them where each answer is. */
+  .crit { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .crit-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 3px 14px; align-items: start;
+    padding: 12px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line);
+  }
+  .crit-row.tech { background: linear-gradient(140deg, rgba(0,119,255,.06), rgba(123,44,255,.06)); border-color: rgba(0,119,255,.2); }
+  .crit-row h3 { margin: 0; font-size: 16px; }
+  .crit-row h3 .w { margin-left: 6px; font-size: 12px; font-weight: 750; color: var(--max-blue); letter-spacing: .02em; }
+  .crit-row p { margin: 0; font-size: 13px; line-height: 1.36; color: var(--ink-2); }
+  .crit-n { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 21px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); white-space: nowrap; }
+  .crit-legend { margin-top: 12px; font-size: 12.5px; color: var(--ink-3); }
+
+  /* --- comparison table ---------------------------------------------------- */
+  .cmp { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .cmp th, .cmp td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.34; color: var(--ink-2); }
+  .cmp th { font-size: 11.5px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); border-bottom: 1.5px solid var(--line); }
+  .cmp td:first-child { width: 190px; font-weight: 650; color: var(--ink); }
+  .cmp .ours { background: rgba(0,119,255,.07); color: var(--ink); font-weight: 600; }
+  .cmp th.ours { color: var(--max-blue); border-radius: 12px 12px 0 0; }
+  .cmp tr:last-child .ours { border-radius: 0 0 12px 12px; }
+
+  /* --- MoSCoW -------------------------------------------------------------- */
+  .mos h3 { display: flex; align-items: center; gap: 8px; }
+  .mos .tag { display: inline-block; padding: 3px 9px; border-radius: 7px; font-size: 11.5px; font-weight: 750; letter-spacing: .04em; }
+  .mos .must { background: rgba(31,138,85,.13); color: var(--good); }
+  .mos .should { background: rgba(0,119,255,.11); color: var(--max-blue); }
+  .mos .could { background: rgba(123,44,255,.11); color: var(--max-violet); }
+  .mos .wont { background: rgba(16,20,28,.08); color: var(--ink-3); }
+  .mos li { font-size: 14.5px; }
+
+  /* --- chat messages (what the bot actually sends) ------------------------- */
+  .msg {
+    background: #fff; border: 1px solid var(--line); border-radius: 18px 18px 18px 6px;
+    padding: 13px 15px; box-shadow: 0 16px 34px -22px rgba(9,18,40,.45);
+    font-size: 14px; line-height: 1.45; color: var(--ink);
+  }
+  .msg .from { margin-bottom: 5px; font-size: 11.5px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; color: var(--max-blue); }
+  .msg .q { color: var(--ink-3); font-style: italic; }
+  .msg-btn { margin-top: 11px; padding: 8px 10px; border-radius: 10px; text-align: center; background: rgba(0,119,255,.1); color: var(--max-blue); font-size: 13.5px; font-weight: 700; }
+  .flow { display: grid; grid-template-columns: 1fr 32px auto 32px 1fr; align-items: center; gap: 0; }
+  .flow .arrow { text-align: center; font-size: 26px; color: var(--ink-3); }
+  /* The owner's side of the loop, cut from the real screen at full size: a whole phone at
+     this width would shrink the one thing that matters - the buttons - into illegibility. */
+  .lead-card { width: 330px; padding: 6px; border-radius: 18px; background: #f2f4f7; box-shadow: 0 16px 34px -20px rgba(9,18,40,.5); }
+  .lead-card img { display: block; width: 100%; aspect-ratio: 740 / 432; border-radius: 14px; }
+  .flow .cap { margin-top: 10px; font-size: 13px; line-height: 1.38; color: var(--ink-3); text-align: center; }
+  .states { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .states b { display: block; margin-bottom: 3px; font-size: 14px; color: var(--ink); }
+  .states span { display: block; font-size: 13px; line-height: 1.38; color: var(--ink-2); }
+
+  /* --- replication steps --------------------------------------------------- */
+  .road { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .road .card { padding: 14px 15px; }
+  .road h3 { font-size: 16px; margin-bottom: 6px; }
+  .road .where { margin-bottom: 8px; font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--ink); }
+  .road dl { margin: 0; }
+  .road dt { margin-top: 7px; font-size: 10.5px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+  .road dd { margin: 1px 0 0; font-size: 13.2px; line-height: 1.36; color: var(--ink-2); }
+  .road .step-n { width: 24px; height: 24px; border-radius: 8px; font-size: 12.5px; margin-bottom: 7px; }
+
+  /* --- cover & closing ----------------------------------------------------- */
+  /* One field for both brands: AIRuntime's deep space, lit by the MAX gradient, with the
+     product where the two meet. The background is the same bg-cover.jpg the PowerPoint
+     cover uses, so both formats open - and close - on the identical slide. */
+  .cover {
+    padding: 0; color: #fff;
+    background: #05070f url("bg-cover.jpg") center / cover no-repeat;
+  }
+  .cover-copy {
+    position: absolute; left: 72px; top: 0; bottom: 0; width: 520px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .cover h1 { margin-top: 4px; font-size: 88px; line-height: .98; letter-spacing: -.045em; color: #fff; }
+  .cover .lead { margin-top: 22px; max-width: 500px; font-size: 21px; line-height: 1.45; color: rgba(234,241,255,.8); }
+  .cover .eyebrow { color: #8ec4ff; }
+  .cover .foot-brand, .cover .foot-n { color: rgba(234,241,255,.5); }
+
+  .cover-meta { margin: 46px 0 0; display: flex; gap: 60px; }
+  .cover-meta dt { margin-bottom: 8px; font-size: 11.5px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; color: rgba(234,241,255,.5); }
+  .cover-meta dd { margin: 0; font-size: 17px; font-weight: 700; color: #fff; }
+  .cover-meta dd + dd { margin-top: 4px; font-size: 13.5px; font-weight: 500; color: rgba(234,241,255,.7); }
+  /* Still to be filled in: shaped like a form field so it cannot pass for finished copy. */
+  .cover-meta .fill { color: rgba(234,241,255,.6); font-weight: 600; border-bottom: 1px dashed rgba(234,241,255,.35); padding-bottom: 2px; display: inline-block; }
+
+  /* The one-message story, drawn as the chat it happens in: the owner's message, the
+     bot's answer with the button, and the storefront that button opens. */
+  /* The bot's answer sits over the phone's empty lower half, in front of it - the order
+     the story reads in. */
+  .hero-phone { position: absolute; left: 912px; top: 76px; --pw: 290px; z-index: 1; }
+  .bubble, .reply { z-index: 2; }
+  .bubble-label {
+    position: absolute; left: 614px; top: 106px;
+    font-size: 11px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase;
+    color: rgba(234,241,255,.55);
+  }
+  .bubble {
+    position: absolute; left: 614px; top: 132px; width: 272px;
+    padding: 14px 17px; border-radius: 20px 20px 5px 20px;
+    background: linear-gradient(115deg, var(--max-blue), var(--max-violet));
+    font-size: 14.5px; line-height: 1.42; color: #fff;
+    box-shadow: 0 20px 44px -18px rgba(0,50,160,.85);
+  }
+  .reply {
+    position: absolute; left: 640px; top: 404px; width: 300px;
+    padding: 16px 18px 16px; border-radius: 20px 20px 20px 5px;
+    background: #fff; color: var(--ink);
+    box-shadow: 0 28px 60px -20px rgba(0,0,0,.85);
+  }
+  .reply-head { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 750; }
+  .reply-ok {
+    width: 22px; height: 22px; border-radius: 50%; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #1f8a55; color: #fff; font-size: 13px; font-weight: 800;
+  }
+  .reply p { margin-top: 6px; font-size: 13.5px; line-height: 1.4; color: var(--ink-2); }
+  .reply-btn {
+    margin-top: 12px; padding: 9px 0; border-radius: 11px; text-align: center;
+    background: var(--max-blue); color: #fff; font-size: 14px; font-weight: 700;
+  }
+
+  /* Closing slide: the way in is a camera, not a URL someone has to retype. */
+  /* Wider than the cover's column: the headline is two lines at this width, four at 520px
+     - and four lines push the links into the footer. */
+  .closing .cover-copy { width: 720px; }
+  .closing h1 { font-size: 62px; line-height: 1.04; letter-spacing: -.035em; }
+  .closing .lead { max-width: 580px; font-size: 19px; }
+  .links { margin: 40px 0 0; display: grid; grid-template-columns: 168px 1fr; gap: 11px 18px; align-items: baseline; }
+  .links dt { font-size: 11.5px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; color: rgba(234,241,255,.5); }
+  .links dd { margin: 0; font-size: 17px; font-weight: 650; color: #fff; }
+  .qr-card {
+    position: absolute; left: 862px; top: 160px; width: 324px;
+    padding: 30px 30px 28px; border-radius: 28px; text-align: center;
+    background: #fff; color: var(--ink);
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.2);
+  }
+  .qr-card img { display: block; width: 236px; height: 236px; margin: 0 auto; image-rendering: pixelated; }
+  .qr-card b { display: block; margin-top: 20px; font-size: 19px; font-weight: 750; letter-spacing: -.01em; }
+  .qr-card span { display: block; margin-top: 5px; font-size: 14px; line-height: 1.4; color: var(--ink-2); }
+
+  /* --- lockup -------------------------------------------------------------- */
+  .lockup { display: inline-flex; align-items: center; gap: 14px; }
+  .lockup .x { font-size: 19px; font-weight: 300; color: rgba(255,255,255,.62); }
+  .wordmark { display: inline-flex; align-items: center; gap: 9px; font-size: 19px; font-weight: 800; letter-spacing: .04em; color: #fff; }
+  .maxmark { display: inline-flex; align-items: center; gap: 8px; font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: #fff; }
+  .maxmark img { width: 32px; height: 32px; display: block; }
+
+  /* --- criterion slides ---------------------------------------------------- */
+  /* One slide per scoring criterion. Every numbered block answers one line of the jury's
+     checklist, in the checklist's own order, so a criterion can be scored from its slide
+     alone. */
+  .crit-tag { display: inline-block; margin-left: 4px; padding: 3px 10px; border-radius: 999px; background: rgba(0,119,255,.1); color: var(--max-blue); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+  .cosmos .crit-tag { background: rgba(142,196,255,.15); color: #8ec4ff; }
+  .slide-head.tight { margin-bottom: 14px; }
+  .slide-head.tight h2 { font-size: 32px; }
+  .slide-head.tight p { font-size: 15px; }
+
+  .q { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 15px; padding: 12px 14px; min-width: 0; }
+  .q.accent { background: linear-gradient(140deg, rgba(0,119,255,.08), rgba(123,44,255,.08)); border-color: rgba(0,119,255,.24); }
+  .q.plain { background: #fff; }
+  .q-h { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 7px; }
+  .q-n { flex: none; width: 21px; height: 21px; border-radius: 7px; background: var(--grad); color: #fff; font-size: 11.5px; font-weight: 800; display: grid; place-items: center; }
+  .q-t { padding-top: 2px; font-size: 10.8px; font-weight: 780; letter-spacing: .06em; text-transform: uppercase; line-height: 1.3; color: var(--ink-3); }
+  .q p { font-size: 13.4px; line-height: 1.42; }
+  .q li { font-size: 13.4px; line-height: 1.4; margin-bottom: 4px; }
+  .q li::before { top: 7px; }
+  .q strong { color: var(--ink); }
+  .cosmos .q { background: rgba(255,255,255,.055); border-color: rgba(255,255,255,.13); }
+  .cosmos .q.accent { background: linear-gradient(140deg, rgba(35,136,255,.16), rgba(124,108,255,.14)); border-color: rgba(127,182,255,.3); }
+  .cosmos .q-t { color: rgba(234,241,255,.56); }
+  .cosmos .q strong { color: #fff; }
+
+  .g { display: grid; gap: 10px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g5 { grid-template-columns: repeat(5, 1fr); }
+
+  /* Problem -> mechanic -> result chains. */
+  .chain { display: grid; align-items: stretch; }
+  .chain .node { background: #fff; border: 1px solid var(--line); border-radius: 13px; padding: 10px 12px; }
+  .chain .node b { display: block; margin-bottom: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--max-blue); }
+  .chain .node span { display: block; font-size: 13px; line-height: 1.38; color: var(--ink); }
+  .chain .ar { display: grid; place-items: center; font-size: 17px; color: var(--ink-3); }
+  .chain.big .node { padding: 16px 18px; border-radius: 16px; }
+  .chain.big .node span { font-size: 15px; line-height: 1.45; color: var(--ink-2); }
+  .chain.big .node b { font-size: 12px; margin-bottom: 8px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chips span { padding: 4px 9px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-size: 12.3px; color: var(--ink); }
+  .cosmos .chips span { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); color: #eaf1ff; }
+  .chips.soft span { background: transparent; border-style: dashed; color: var(--ink-3); }
+  .cosmos .chips.soft span { color: rgba(234,241,255,.6); }
+
+  /* Mini comparison / checklist tables. */
+  .mini { width: 100%; border-collapse: collapse; }
+  .mini th, .mini td { padding: 5px 7px; border-bottom: 1px solid var(--line); font-size: 12.3px; line-height: 1.3; text-align: left; vertical-align: top; color: var(--ink-2); }
+  .mini th { font-size: 10.5px; font-weight: 780; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+  .mini td:first-child { font-weight: 650; color: var(--ink); }
+  .mini .ours { background: rgba(0,119,255,.08); color: var(--ink); font-weight: 650; }
+  .mini tr:last-child td { border-bottom: 0; }
+  .ok { color: var(--good); font-weight: 800; }
+
+  /* Gantt: twelve months, one row per replication step. */
+  .gantt { display: grid; grid-template-columns: 188px repeat(12, 1fr); gap: 6px 3px; align-items: center; }
+  .gantt .m { font-size: 10.5px; font-weight: 750; text-align: center; color: rgba(234,241,255,.5); }
+  .gantt .lbl { font-size: 12.5px; font-weight: 650; line-height: 1.25; color: #fff; }
+  .gantt .lbl small { display: block; font-size: 11px; font-weight: 500; color: rgba(234,241,255,.6); }
+  .gantt .bar { height: 26px; border-radius: 7px; display: flex; align-items: center; padding: 0 9px; font-size: 11.3px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; }
+  .bar.b1 { background: linear-gradient(120deg, #19c7a0, #0e9f7e); }
+  .bar.b2 { background: linear-gradient(120deg, #0077ff, #3a8dff); }
+  .bar.b3 { background: linear-gradient(120deg, #7b2cff, #9a5cff); }
+  .bar.b4 { background: linear-gradient(120deg, #ff2d87, #ff5fa2); }
+  .gantt .gate { font-size: 10.5px; color: #ffd166; font-weight: 800; }
+
+  /* Risk matrix: likelihood x impact. */
+  .risk { display: grid; grid-template-columns: 16px 1fr 1fr; grid-template-rows: 1fr 1fr 16px; gap: 5px; }
+  .risk .cell { border-radius: 10px; padding: 7px 9px; font-size: 11.8px; line-height: 1.3; color: #eaf1ff; }
+  .risk .cell b { display: block; font-size: 12px; color: #fff; }
+  .cell.hi { background: rgba(255,45,135,.22); border: 1px solid rgba(255,45,135,.4); }
+  .cell.mid { background: rgba(255,190,60,.16); border: 1px solid rgba(255,190,60,.35); }
+  .cell.lo { background: rgba(92,230,176,.12); border: 1px solid rgba(92,230,176,.3); }
+  .risk .ax { font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: rgba(234,241,255,.5); display: grid; place-items: center; }
+  .risk .ax.y { writing-mode: vertical-rl; transform: rotate(180deg); }
+
+  /* Scenario steps with where each happens. */
+  .steps7 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+  .steps7 > div { background: #fff; border: 1px solid var(--line); border-radius: 13px; padding: 10px 11px; }
+  .steps7 .sn { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: var(--grad); color: #fff; font-size: 11.5px; font-weight: 800; }
+  .steps7 p { margin-top: 7px; font-size: 12.8px; line-height: 1.35; color: var(--ink); }
+  .where { display: inline-block; margin-top: 7px; padding: 2px 7px; border-radius: 6px; font-size: 10.5px; font-weight: 750; }
+  .w-chat { background: rgba(31,138,85,.12); color: var(--good); }
+  .w-app { background: rgba(0,119,255,.11); color: var(--max-blue); }
+  .w-max { background: rgba(123,44,255,.11); color: var(--max-violet); }
+
+  /* State machine. */
+  .sm { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .sm span { padding: 5px 10px; border-radius: 9px; background: #fff; border: 1px solid var(--line); font-size: 12.5px; font-weight: 650; color: var(--ink); }
+  .sm i { font-style: normal; color: var(--ink-3); font-size: 13px; }
+  .sm .s-new { border-color: rgba(0,119,255,.4); color: var(--max-blue); }
+  .sm .s-ok { border-color: rgba(31,138,85,.4); color: var(--good); }
+  .sm .s-no { color: var(--ink-3); }
+
+  /* Customer journey strip. */
+  .cjm { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .cjm .phone { --pw: 118px; }
+  .cjm .cap { margin-top: 7px; text-align: center; font-size: 12px; line-height: 1.3; color: var(--ink-2); }
+  .cjm .cap b { display: block; font-size: 12.5px; color: var(--ink); }
+  .cjm .who { grid-column: span 3; font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--max-blue); border-bottom: 1.5px solid rgba(0,119,255,.25); padding-bottom: 4px; }
+
+  .navrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .navrow span { padding: 5px 10px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12.5px; color: var(--ink); }
+  .navrow b { margin-right: 6px; color: var(--max-blue); font-variant-numeric: tabular-nums; }
+
+  .bonus { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+  .bonus > div { padding: 8px 10px; border-radius: 11px; background: #fff; border: 1px solid rgba(0,119,255,.2); }
+  .bonus code { display: block; font-size: 11.5px; font-weight: 700; color: var(--max-blue); }
+  .bonus span { display: block; margin-top: 3px; font-size: 11.8px; line-height: 1.3; color: var(--ink-2); }
+
+  .mods { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12.3px; line-height: 1.35; }
+  .mods code { color: #8ec4ff; font-size: 11.8px; }
+  .mods span { color: rgba(234,241,255,.74); }
+
+  .src-strip { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-3); }
+  .src-strip b { color: var(--ink-2); }
+
+  /* Cover: three storefronts, three looks - the product's promise before a word is read. */
+  .roomy .q { padding: 16px 18px; }
+  .roomy .q p, .roomy .q li { font-size: 15px; line-height: 1.46; }
+  .roomy .q li { margin-bottom: 7px; }
+  .roomy .mini th, .roomy .mini td { padding: 7px 8px; font-size: 13.6px; }
+  .roomy .q-t { font-size: 11.5px; }
+  .fan .phone { position: absolute; }
+  .fan .p1 { left: 690px; top: 150px; --pw: 226px; transform: rotate(-7deg); z-index: 1; }
+  .fan .p2 { left: 1000px; top: 150px; --pw: 226px; transform: rotate(7deg); z-index: 1; }
+  .fan .p3 { left: 832px; top: 84px; --pw: 262px; z-index: 2; }
+
+  /* --- product deck ---------------------------------------------------------- */
+  .hl { display: inline-block; margin-top: 6px; padding: 0 14px 6px; border-radius: 14px;
+        background: linear-gradient(110deg, #2388ff, #19c7d2); box-shadow: 0 0 40px rgba(25,199,210,.45); }
+  .browser { border-radius: 14px; overflow: hidden; background: #fff; border: 1px solid var(--line);
+             box-shadow: 0 24px 50px -26px rgba(9,18,40,.55); }
+  .browser .bar { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; background: #eef2f8; border-bottom: 1px solid var(--line); }
+  .browser .bar i { width: 10px; height: 10px; border-radius: 50%; background: #d3dae6; }
+  .browser .bar i:nth-child(1) { background: #ff6b6b; } .browser .bar i:nth-child(2) { background: #ffc94d; } .browser .bar i:nth-child(3) { background: #4fd18b; }
+  .browser .bar span { margin-left: 10px; font-size: 12px; color: var(--ink-3); }
+  .browser img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; }
+  .cover-browser { position: absolute; left: 640px; top: 96px; width: 600px; transform: rotate(-1.5deg); border-color: rgba(255,255,255,.2); }
+  .cover-phone { position: absolute; left: 1050px; top: 290px; --pw: 176px; z-index: 2; }
+  .feature { padding: 10px 0 10px 16px; border-left: 3px solid rgba(0,119,255,.3); margin-bottom: 8px; }
+  .feature b { display: block; font-size: 16px; color: var(--ink); }
+  .feature span { display: block; margin-top: 2px; font-size: 14px; line-height: 1.4; color: var(--ink-2); }
+  .crop { height: 190px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+  .crop img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .case { padding: 20px 20px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); }
+  .case b { display: block; font-size: 17px; color: var(--ink); }
+  .case span { display: block; margin-top: 3px; font-size: 14px; color: var(--ink-2); }
+  .case q { display: block; margin-top: 10px; padding: 8px 12px; border-radius: 12px 12px 12px 4px; background: linear-gradient(115deg, var(--max-blue), var(--max-violet)); color: #fff; font-size: 13.5px; quotes: "«" "»"; }
+  .plan { padding: 18px 18px 16px; border-radius: 18px; background: var(--surface-2); border: 1px solid var(--line); }
+  .plan b { font-size: 16px; color: var(--ink); }
+  .plan .price { margin: 8px 0 10px; font-size: 30px; font-weight: 800; letter-spacing: -.03em; color: var(--ink); }
+  .plan .price small { font-size: 14px; font-weight: 600; color: var(--ink-3); margin-left: 3px; }
+  .plan li { font-size: 14px; }
+  .plan.hot { background: linear-gradient(150deg, rgba(0,119,255,.12), rgba(123,44,255,.12)); border-color: rgba(0,119,255,.4); box-shadow: 0 18px 36px -24px rgba(0,80,200,.6); }
+</style>
+</head>
+<body>
+
+<!-- Reusable defs: the AIRuntime mark, drawn once and referenced by <use>. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="ar-l" x1="110" y1="430" x2="280" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C7B8FF" stop-opacity=".9"/><stop offset=".44" stop-color="#8BDFFF" stop-opacity=".96"/><stop offset="1" stop-color="#1D8CFF" stop-opacity=".88"/>
+    </linearGradient>
+    <linearGradient id="ar-r" x1="238" y1="76" x2="424" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEFBFF" stop-opacity=".96"/><stop offset=".43" stop-color="#50DBE5" stop-opacity=".92"/><stop offset="1" stop-color="#2388FF" stop-opacity=".9"/>
+    </linearGradient>
+    <linearGradient id="ar-c" x1="146" y1="330" x2="370" y2="258" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CFC6FF" stop-opacity=".8"/><stop offset=".55" stop-color="#EAF9FF" stop-opacity=".88"/><stop offset="1" stop-color="#14B8D7" stop-opacity=".78"/>
+    </linearGradient>
+    <g id="ar-mark">
+      <path d="M97 404c52-154 88-250 126-297 29-36 63-43 93-29 42 19 77 81 107 183 18 59 28 109 30 132 4 34-16 57-43 57-18 0-32-10-43-31-47-91-91-141-132-151-48-12-91 29-129 122-5 12-9 18-9 14Z" fill="url(#ar-l)" opacity=".88"/>
+      <path d="M217 109c29-36 63-45 96-31 41 18 78 81 110 183 18 59 28 109 30 132 3 31-13 53-38 56-20 2-36-9-48-31-18-36-36-66-54-90-35-159-69-232-96-219Z" fill="url(#ar-r)" opacity=".8"/>
+      <path d="M83 407c55-78 107-119 158-126 58-7 112 31 166 115-12 34-36 47-65 27-40-29-74-45-103-47-34-3-70 14-109 51-26 24-52 21-47-20Z" fill="url(#ar-c)" opacity=".9"/>
+    </g>
+    <g id="steps-corner">
+      <rect x="0" y="0" width="46" height="46" fill="currentColor" opacity=".85"/>
+      <rect x="46" y="46" width="46" height="46" fill="currentColor" opacity=".55"/>
+      <rect x="92" y="0" width="46" height="46" fill="currentColor" opacity=".3"/>
+      <rect x="92" y="92" width="46" height="46" fill="currentColor" opacity=".34"/>
+      <rect x="138" y="46" width="46" height="46" fill="currentColor" opacity=".18"/>
+    </g>
+  </defs>
+</svg>
+
+<!-- ======================= 1. COVER ====================================== -->
+<section class="slide cover">
+  <div class="cover-copy" style="width:560px;">
+    <div class="lockup" style="margin-bottom:34px;">
+      <span class="wordmark">
+        <svg viewBox="55 45 402 402" width="34" height="34" aria-hidden="true"><use href="#ar-mark"/></svg>
+        AIRUNTIME
+      </span>
+    </div>
+    <span class="eyebrow">Idea → Build → Runtime</span>
+    <h1 style="font-size:72px;">Опишите идею.<br /><span class="hl">И она полетит</span></h1>
+    <p class="lead">Сайт или Telegram-бот из одного чата: AI-агент пишет код, собирает его в Docker, проверяет и сам выводит проект в прод по HTTPS.</p>
+    <dl class="cover-meta">
+      <div><dt>Сайт</dt><dd>airuntime.ru</dd></div>
+      <div><dt>Для кого</dt><dd>предприниматели, маркетологи,<br />продуктовые команды</dd></div>
+    </dl>
+  </div>
+  <div class="browser cover-browser"><div class="bar"><i></i><i></i><i></i><span>airuntime.ru/app</span></div><img src="shot-dashboard.png" alt="Кабинет AIRuntime: проекты" /></div>
+  <div class="phone dark cover-phone"><img src="shot-chat-mobile.png" alt="Чат проекта на телефоне" /></div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">01</span></div>
+</section>
+
+<!-- ======================= 2. PROBLEM ==================================== -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Проблема</span>
+    <h2>Между идеей и работающим продуктом — пропасть</h2>
+    <p>Лендинг, сервис записи или бот нужен «на этой неделе». Но каждый привычный путь где-то обрывается.</p>
+  </div>
+  <div class="body">
+    <div class="cols c3" style="gap:16px;">
+      <div class="card topline">
+        <span class="pill pill-guess">Разработчик или студия</span>
+        <h3 style="margin-top:12px;">Долго и дорого для проверки идеи</h3>
+        <ul style="margin-top:8px;"><li>Нужно ТЗ, согласования и ожидание</li><li>Каждая правка — новая итерация и бюджет</li><li>Хостинг и поддержка — отдельная история</li></ul>
+      </div>
+      <div class="card topline">
+        <span class="pill pill-guess">Конструктор сайтов</span>
+        <h3 style="margin-top:12px;">Быстро, но упирается в потолок</h3>
+        <ul style="margin-top:8px;"><li>Шаблон вместо своей логики</li><li>Нет бэкенда, базы и ботов — или только через интеграции</li><li>Нестандартная задача — снова к разработчику</li></ul>
+      </div>
+      <div class="card topline">
+        <span class="pill pill-guess">AI-генератор кода</span>
+        <h3 style="margin-top:12px;">Отдаёт файлы, а не работающий сервис</h3>
+        <ul style="margin-top:8px;"><li>Код надо собрать, где-то запустить и починить</li><li>Сервер, домен, HTTPS, база — на вас</li><li>Ошибка сборки превращается в DevOps-задачу</li></ul>
+      </div>
+    </div>
+    <div class="card accent" style="margin-top:18px;">
+      <p style="font-size:17px;"><strong>Что на самом деле нужно:</strong> описать результат своими словами — и получить ссылку, по которой продукт уже работает, а потом дорабатывать его тем же разговором.</p>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">02</span></div>
+</section>
+
+<!-- ======================= 3. SOLUTION =================================== -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Решение</span>
+    <h2>Один чат — от описания до ссылки в проде</h2>
+    <p>Пользователь пишет задачу обычным языком. Дальше платформа ведёт проект сама — и показывает каждый шаг.</p>
+  </div>
+  <div class="body" style="justify-content:flex-start;">
+    <div class="chain" style="grid-template-columns:1fr 22px 1fr 22px 1fr 22px 1fr 22px 1fr;">
+      <div class="node"><b>1 · Описание</b><span>«Сайт кофейни с меню и предзаказом»</span></div><div class="ar">→</div>
+      <div class="node"><b>2 · План</b><span>агент раскладывает задачу на шаги</span></div><div class="ar">→</div>
+      <div class="node"><b>3 · Код и сборка</b><span>пишет код, коммитит в git, собирает Docker-образ</span></div><div class="ar">→</div>
+      <div class="node"><b>4 · Проверка</b><span>читает логи и превью, сам чинит ошибки</span></div><div class="ar">→</div>
+      <div class="node"><b>5 · Прод</b><span>контейнер, HTTPS-домен, рабочая ссылка</span></div>
+    </div>
+    <div class="split" style="grid-template-columns:1.55fr 1fr; margin-top:16px; align-items:center;">
+      <div class="browser"><div class="bar"><i></i><i></i><i></i><span>Кофейня «Зерно» · чат</span></div><img src="shot-chat.png" alt="Чат проекта: агент докладывает о сборке и запуске" style="aspect-ratio:16/8.4;" /></div>
+      <div class="cols" style="gap:10px;">
+        <div class="tile"><div class="value">1 чат</div><div class="label">от идеи до рабочей ссылки</div></div>
+        <div class="tile"><div class="value">0</div><div class="label">строк кода и команд от пользователя</div></div>
+        <div class="tile"><div class="value">24/7</div><div class="label">проект живёт в проде, правки — тем же разговором</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">03</span></div>
+</section>
+
+<!-- ======================= 4. RUNTIME ===================================== -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Главное отличие</span>
+    <h2>Не архив с кодом. Живой продукт</h2>
+    <p>Результат — не «вот вам файлы», а проверенная Docker-сборка, которая уже отвечает по HTTPS.</p>
+  </div>
+  <div class="body">
+    <div class="split" style="grid-template-columns:1.35fr 1fr; align-items:center;">
+      <div class="browser"><div class="bar"><i></i><i></i><i></i><span>Деплои проекта</span></div><img src="shot-deploys.png" alt="Деплои: лог сборки, health check и HTTPS" /></div>
+      <div>
+        <div class="feature"><b>Реальная сборка в контейнере</b><span>Каждый запуск заново собирает образ из текущего кода и поднимает контейнер.</span></div>
+        <div class="feature"><b>Ошибка сборки — не ваша проблема</b><span>Агент читает лог, исправляет проект и повторяет build.</span></div>
+        <div class="feature"><b>Проверка результата</b><span>После сборки — health check и просмотр превью: ошибки сети и поломанная вёрстка блокируют выпуск.</span></div>
+        <div class="feature"><b>Ссылка сразу</b><span>Поддомен <code>*.airuntime.ru</code> с HTTPS или свой домен после проверки DNS.</span></div>
+        <div class="feature"><b>Логи в реальном времени</b><span>Видно, что запущено, какие шаги прошли и где нужно вмешаться.</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">04</span></div>
+</section>
+
+<!-- ======================= 5. PLATFORM ==================================== -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Платформа</span>
+    <h2>Инфраструктура появляется, когда она нужна</h2>
+    <p>Всё, что обычно требует DevOps, агент запрашивает у платформы по ходу работы.</p>
+  </div>
+  <div class="body">
+    <div class="cols c3" style="gap:16px; align-items:start;">
+      <div class="card topline">
+        <h3>Базы и сервисы по запросу</h3>
+        <p style="font-size:15px;">Нужна база — агент просит её у платформы: сервис, креды и приватная сеть создаются сами и подставляются в окружение.</p>
+        <div class="chips" style="margin-top:12px;"><span>PostgreSQL</span><span>Redis</span><span>MySQL</span><span>MongoDB</span><span>RabbitMQ</span></div>
+      </div>
+      <div class="card topline">
+        <h3>Секреты вне модели</h3>
+        <p style="font-size:15px;">Нужен токен — агент заводит пустой слот, значение вводит только пользователь. Хранится зашифрованно и не уходит в LLM.</p>
+        <div class="crop" style="margin-top:12px;"><img src="crop-secrets.png" alt="Переменные и секреты проекта" style="object-position:top left;" /></div>
+      </div>
+      <div class="card topline">
+        <h3>Каждый шаг — версия</h3>
+        <p style="font-size:15px;">Изменения коммитятся в git: любую версию можно открыть, скачать архивом или откатить.</p>
+        <div class="crop" style="margin-top:12px;"><img src="crop-versions.png" alt="История версий с откатом" style="object-position:top left;" /></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">05</span></div>
+</section>
+
+<!-- ======================= 6. ENGINE ====================================== -->
+<section class="slide cosmos">
+  <div class="slide-head">
+    <span class="eyebrow">Под капотом</span>
+    <h2>Оркестрация агентов, а не один промпт</h2>
+    <p>Задача раскладывается на граф шагов; каждый шаг выполняется, проверяется доказательствами и при неудаче перепланируется.</p>
+  </div>
+  <div class="body">
+    <svg viewBox="0 -44 1160 256" style="width:100%; height:auto;" aria-label="Схема оркестрации">
+      <defs>
+        <marker id="pa" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#7fb6ff"/></marker>
+        <style>
+          .bx { fill: rgba(255,255,255,.055); stroke: rgba(255,255,255,.16); rx: 12; }
+          .bxa { fill: rgba(0,119,255,.18); stroke: rgba(127,182,255,.5); rx: 12; }
+          .t { fill: #fff; font: 700 15px Inter, sans-serif; }
+          .s { fill: rgba(234,241,255,.62); font: 12.5px Inter, sans-serif; }
+          .ln { stroke: #7fb6ff; stroke-width: 1.6; fill: none; marker-end: url(#pa); }
+          .lnd { stroke: #ff9ac4; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; marker-end: url(#pa); }
+        </style>
+      </defs>
+      <rect class="bxa" x="0" y="70" width="180" height="70"/><text class="t" x="18" y="100">Чат</text><text class="s" x="18" y="122">задача словами</text>
+      <rect class="bx" x="230" y="70" width="190" height="70"/><text class="t" x="248" y="100">Планировщик</text><text class="s" x="248" y="122">граф задач (DAG)</text>
+      <rect class="bx" x="470" y="10" width="210" height="60"/><text class="t" x="488" y="36">Кодинг-агент</text><text class="s" x="488" y="56">код и git в изоляции</text>
+      <rect class="bx" x="470" y="80" width="210" height="60"/><text class="t" x="488" y="106">Навыки платформы</text><text class="s" x="488" y="126">базы, секреты, релиз</text>
+      <rect class="bx" x="470" y="150" width="210" height="60"/><text class="t" x="488" y="176">Инструменты MCP</text><text class="s" x="488" y="196">внешние сервисы</text>
+      <rect class="bx" x="730" y="70" width="190" height="70"/><text class="t" x="748" y="100">Проверка</text><text class="s" x="748" y="122">сборка, логи, превью</text>
+      <rect class="bxa" x="970" y="70" width="190" height="70"/><text class="t" x="988" y="100">Прод</text><text class="s" x="988" y="122">контейнер + HTTPS</text>
+      <path class="ln" d="M180,105 H222"/>
+      <path class="ln" d="M420,105 C445,105 445,40 462,40"/><path class="ln" d="M420,105 H462"/><path class="ln" d="M420,105 C445,105 445,180 462,180"/>
+      <path class="ln" d="M680,40 C705,40 705,105 722,105"/><path class="ln" d="M680,110 H722"/><path class="ln" d="M680,180 C705,180 705,105 722,105"/>
+      <path class="ln" d="M920,105 H962"/>
+      <path class="lnd" d="M825,70 C825,-50 325,-50 325,62"/>
+      <text class="s" x="520" y="-2" style="fill:#ff9ac4;"> </text>
+    </svg>
+    <p class="small" style="margin:4px 0 0 700px; color:#ff9ac4;">↺ не прошло проверку — перепланирование</p>
+    <div class="cols c4" style="gap:12px; margin-top:12px;">
+      <div class="card"><h3>Изоляция</h3><p style="font-size:14px;">Каждый проект — свой контейнер; параллельные изменения — в отдельных рабочих копиях git.</p></div>
+      <div class="card"><h3>Доказательства, не слова</h3><p style="font-size:14px;">Шаг считается сделанным, только если прошли проверки: сборка, статический анализ, превью.</p></div>
+      <div class="card"><h3>Бюджет под контролем</h3><p style="font-size:14px;">Расход видно по ходу работы; закончился бюджет — проект ждёт пополнения, а не падает.</p></div>
+      <div class="card"><h3>Любая модель</h3><p style="font-size:14px;">OpenAI, Anthropic, Gemini, OpenRouter — через ключ платформы или свой ключ.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">06</span></div>
+</section>
+
+<!-- ======================= 7. USE CASES =================================== -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Что можно сделать</span>
+    <h2>Один сценарий — любые небольшие продукты</h2>
+    <p>Стек под задачу выбирает агент. Достаточно описать результат — или взять формулировку ниже.</p>
+  </div>
+  <div class="body">
+    <div class="cols c3" style="gap:16px;">
+      <div class="case"><b>Сайт компании</b><span>услуги, контакты, форма заявки</span><q>Сделай сайт автосервиса с записью</q></div>
+      <div class="case"><b>Лендинг или промо</b><span>короткая страница с понятным призывом</span><q>Нужен лендинг для запуска курса</q></div>
+      <div class="case"><b>Сервис записи</b><span>слоты, заявки, подтверждения клиентам</span><q>Сайт записи к мастеру с уведомлениями</q></div>
+      <div class="case"><b>Telegram-бот</b><span>диалоги, заявки, напоминания</span><q>Бот принимает заявки и шлёт напоминания</q></div>
+      <div class="case"><b>Сайт + бот</b><span>одна логика, общие секреты и сервисы</span><q>Лендинг кофейни и бот для брони столиков</q></div>
+      <div class="case"><b>MVP и внутренние инструменты</b><span>проверка гипотезы, простая CRM, админка</span><q>Учёт заказов для студии с отчётом за неделю</q></div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">07</span></div>
+</section>
+
+<!-- ======================= 8. AUDIENCE ==================================== -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Для кого</span>
+    <h2>Для тех, кому нужно быстро проверить идею</h2>
+  </div>
+  <div class="body">
+    <div class="cols c3" style="gap:16px;">
+      <div class="card accent">
+        <h3>Предприниматели</h3>
+        <p style="font-size:15px;"><strong>Задача:</strong> сайт, запись или бот для своего бизнеса без подрядчика.</p>
+        <p style="font-size:15px; margin-top:8px;"><strong>Что получают:</strong> рабочую ссылку в тот же день и правки словами, без ТЗ и счетов за каждую итерацию.</p>
+      </div>
+      <div class="card accent">
+        <h3>Маркетологи</h3>
+        <p style="font-size:15px;"><strong>Задача:</strong> лендинги под кампании, промо, сбор заявок — быстро и много.</p>
+        <p style="font-size:15px; margin-top:8px;"><strong>Что получают:</strong> страницу под гипотезу без очереди к разработке и свой домен для запуска.</p>
+      </div>
+      <div class="card accent">
+        <h3>Продуктовые команды</h3>
+        <p style="font-size:15px;"><strong>Задача:</strong> MVP, прототип, внутренний инструмент — проверить до того, как тратить спринт.</p>
+        <p style="font-size:15px; margin-top:8px;"><strong>Что получают:</strong> работающий сервис с базой и логами, код в git — можно забрать дальше в разработку.</p>
+      </div>
+    </div>
+    <div class="cols c3" style="margin-top:16px; gap:16px;">
+      <div class="tile"><div class="value">6,6<span class="unit">млн</span></div><div class="label">субъектов малого и среднего бизнеса в России</div><div class="src">ФНС России, реестр МСП, июль 2026</div></div>
+      <div class="tile"><div class="value">0</div><div class="label">навыков разработки нужно, чтобы начать</div></div>
+      <div class="tile"><div class="value">100<span class="unit">₽</span></div><div class="label">на модели при регистрации — первый проект бесплатно</div></div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">08</span></div>
+</section>
+
+<!-- ======================= 9. COMPARISON ================================== -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Сравнение</span>
+    <h2>Почему не привычные способы</h2>
+    <p>Сравниваем качественно, по тому, что важно при запуске небольшого продукта.</p>
+  </div>
+  <div class="body">
+    <table class="cmp">
+      <thead><tr><th></th><th>Разработчик или студия</th><th>Конструктор сайтов</th><th>AI-генератор кода</th><th class="ours">AIRuntime</th></tr></thead>
+      <tbody>
+        <tr><td>Старт</td><td>ТЗ и ожидание</td><td>выбор шаблона</td><td>промпт</td><td class="ours">сообщение в чате</td></tr>
+        <tr><td>Нужны навыки</td><td>нет, но нужен бюджет</td><td>настройка блоков</td><td>разработка и DevOps</td><td class="ours">нет</td></tr>
+        <tr><td>Своя логика и бэкенд</td><td>да</td><td>ограниченно</td><td>да, если соберёте сами</td><td class="ours">да: код, база, бот</td></tr>
+        <tr><td>Хостинг, домен, HTTPS</td><td>отдельно</td><td>включено</td><td>на вас</td><td class="ours">включено, свой домен тоже</td></tr>
+        <tr><td>Ошибка сборки</td><td>разработчик</td><td>—</td><td>на вас</td><td class="ours">агент чинит сам</td></tr>
+        <tr><td>Правки</td><td>новая итерация</td><td>вручную в редакторе</td><td>заново и вручную</td><td class="ours">словами в том же чате</td></tr>
+        <tr><td>Код</td><td>у подрядчика</td><td>закрыт</td><td>у вас</td><td class="ours">в git, версии и архивы</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">09</span></div>
+</section>
+
+<!-- ======================= 10. BUSINESS MODEL ============================= -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Бизнес-модель</span>
+    <h2>Подписка с бюджетом на модели</h2>
+    <p>Тариф включает ежемесячный бюджет на генерацию и лимит проектов. Кончился бюджет — пополнение баланса, без смены тарифа.</p>
+  </div>
+  <div class="body">
+    <div class="cols c4" style="gap:12px;">
+      <div class="plan"><b>Бесплатный</b><div class="price">0 ₽</div><ul><li>100 ₽ на модели — разово</li><li>1 проект</li><li>экономичная модель</li></ul></div>
+      <div class="plan hot"><b>Про</b><div class="price">990 ₽<small>/мес</small></div><ul><li>700 ₽ на модели каждый месяц</li><li>до 10 проектов</li><li>все модели</li></ul></div>
+      <div class="plan"><b>Бизнес</b><div class="price">2 990 ₽<small>/мес</small></div><ul><li>2 200 ₽ на модели каждый месяц</li><li>до 50 проектов</li><li>все модели</li></ul></div>
+      <div class="plan"><b>Команда · Студия · Ultra</b><div class="price">до 30 000 ₽<small>/мес</small></div><ul><li>до 20 000 ₽ на модели</li><li>до 100 проектов</li><li>для агентств и команд</li></ul></div>
+    </div>
+    <div class="cols c3" style="gap:12px; margin-top:16px;">
+      <div class="card"><h3>Свой API-ключ</h3><p style="font-size:14.5px;">Подключил ключ провайдера — токены без списаний и доступ ко всем моделям. Ключ хранится зашифрованно, показываются только последние 4 символа.</p></div>
+      <div class="card"><h3>Маржа на токенах</h3><p style="font-size:14.5px;">На генерацию через ключ платформы — наценка 10%, настраивается без релиза. Бюджет тарифа ниже его цены — у подписки остаётся маржа.</p></div>
+      <div class="card"><h3>Свой домен</h3><p style="font-size:14.5px;">На любом тарифе: проверка DNS и HTTPS. Остальное — поддомен <code>*.airuntime.ru</code>.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">10</span></div>
+</section>
+
+<!-- ======================= 11. TRUST ====================================== -->
+<section class="slide">
+  <div class="slide-head">
+    <span class="eyebrow">Безопасность и доверие</span>
+    <h2>Проект ваш — и под контролем</h2>
+  </div>
+  <div class="body">
+    <div class="cols c3" style="gap:16px;">
+      <div class="card topline"><h3>Секреты не видит модель</h3><p style="font-size:15px;">Токены и ключи вводятся в настройках проекта, хранятся зашифрованно и подставляются только при сборке и запуске.</p></div>
+      <div class="card topline"><h3>Изоляция проектов</h3><p style="font-size:15px;">Каждый проект — отдельный контейнер со своей приватной сетью для баз и сервисов.</p></div>
+      <div class="card topline"><h3>Код агента не исполняется на платформе</h3><p style="font-size:15px;">Бэкенд только проверяет изменения статически; запускается код лишь в контейнере проекта.</p></div>
+      <div class="card topline"><h3>Всё в git</h3><p style="font-size:15px;">Каждое изменение — коммит: видно, что менялось, можно скачать архив или откатиться.</p></div>
+      <div class="card topline"><h3>Прозрачный расход</h3><p style="font-size:15px;">Токены, время генерации и стоимость — по каждому проекту в кабинете.</p></div>
+      <div class="card topline"><h3>Остановка в один клик</h3><p style="font-size:15px;">Проект можно остановить, перезапустить или пересобрать из любой версии.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">11</span></div>
+</section>
+
+<!-- ======================= 12. CLOSING ==================================== -->
+<section class="slide cover closing">
+  <div class="cover-copy">
+    <div class="lockup" style="margin-bottom:34px;">
+      <span class="wordmark">
+        <svg viewBox="55 45 402 402" width="34" height="34" aria-hidden="true"><use href="#ar-mark"/></svg>
+        AIRUNTIME
+      </span>
+    </div>
+    <span class="eyebrow">Попробуйте</span>
+    <h1>Ваш проект — в одном<br />сообщении отсюда</h1>
+    <p class="lead">Опишите задачу в чате — AIRuntime соберёт и запустит её за вас. Первый проект — бесплатно.</p>
+    <dl class="links">
+      <dt>Сайт</dt><dd>airuntime.ru</dd>
+      <dt>Старт</dt><dd>100 ₽ на модели при регистрации</dd>
+    </dl>
+  </div>
+  <div class="qr-card">
+    <img src="qr-site.png" alt="QR-код: airuntime.ru" />
+    <b>Наведите камеру</b>
+    <span>Откроется airuntime.ru — опишите идею и получите ссылку</span>
+  </div>
+  <div class="foot"><span class="foot-brand">AIRuntime</span><span class="foot-n">12</span></div>
+</section>
+
+</body>
+</html>

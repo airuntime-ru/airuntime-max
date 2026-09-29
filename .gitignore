@@ -85,3 +85,6 @@ docs/max-presentation/node_modules/
 docs/max-presentation/.secrets.env
 docs/max-presentation/deck.filled.html
 docs/max-presentation/presentation.jury.pdf
+
+# Generated from docs/product-presentation/deck.html (same reason as the MAX deck above).
+docs/product-presentation/presentation.pdf
